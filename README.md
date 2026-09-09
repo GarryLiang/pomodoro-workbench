@@ -9,6 +9,24 @@
 
 ---
 
+## 🖼 界面预览（真实运行截图）
+
+| 番茄专注 | 待办清单 |
+|---|---|
+| ![番茄专注](screenshots/01-番茄专注.png) | ![待办清单](screenshots/02-待办清单.png) |
+
+| 习惯打卡（热力图） | 数据统计 |
+|---|---|
+| ![习惯打卡](screenshots/03-习惯打卡.png) | ![数据统计](screenshots/04-数据统计.png) |
+
+| 阶段结束提醒弹窗 |
+|---|
+| ![阶段结束提醒](screenshots/05-阶段结束提醒.png) |
+
+> 截图由程序真实运行生成（见 `tools/make_screenshots.py`）。
+
+---
+
 ## ✨ 功能特性
 
 番茄工作台包含 **4 大相互独立的功能模块**：
@@ -156,6 +174,9 @@ pomodoro-workbench/
 ├── tests/                   # 自动化测试
 │   ├── run_smoke.py         # 核心逻辑测试（62 项断言，含铃声合成校验）
 │   └── gui_smoke.py         # 界面构建冒烟测试
+├── tools/
+│   └── make_screenshots.py  # 开发者工具：自动生成 README 界面截图（需 Pillow）
+├── screenshots/             # README 真实界面截图
 ├── start.bat                # Windows 一键启动（缺 Python 自动安装）
 ├── start.sh                 # macOS / Linux 一键启动
 ├── build_exe.bat            # 打包独立 exe（PyInstaller）

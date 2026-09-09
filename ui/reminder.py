@@ -43,15 +43,17 @@ def stop_active_alarm():
         _active_popup = None
 
 
-def show_phase_reminder(root, phase_label, message, icon="🍅", sound=DEFAULT_KIND):
+def show_phase_reminder(root, phase_label, message, icon="🍅", sound=DEFAULT_KIND,
+                        play_sound=True):
     """弹出阶段结束提醒，并循环播放该阶段专属闹铃。
 
     若已有提醒弹窗则先关闭旧弹窗，保证同一时刻只有一个提醒。
     sound 取值：focus / short_break / long_break（见 app.alarm.KINDS）。
+    play_sound=False 时只弹窗不响铃（用于截图等静默场景）。
     """
     global _active_popup
     stop_active_alarm()
-    popup = ReminderPopup(root, phase_label, message, icon, sound)
+    popup = ReminderPopup(root, phase_label, message, icon, sound, play_sound)
     _active_popup = popup
     return popup
 
@@ -59,9 +61,11 @@ def show_phase_reminder(root, phase_label, message, icon="🍅", sound=DEFAULT_K
 class ReminderPopup(tk.Toplevel):
     """置顶的提醒弹窗。"""
 
-    def __init__(self, master, phase_label, message, icon="🍅", sound=DEFAULT_KIND):
+    def __init__(self, master, phase_label, message, icon="🍅",
+                 sound=DEFAULT_KIND, play_sound=True):
         super().__init__(master)
         self._sound_kind = sound
+        self._play_sound_flag = play_sound
         self._auto_close_id = None
         self.overrideredirect(False)
         self.title("阶段结束提醒")
@@ -110,6 +114,8 @@ class ReminderPopup(tk.Toplevel):
         self.geometry("+%d+%d" % (x, y))
 
     def _play_sound(self):
+        if not self._play_sound_flag:
+            return
         global _playing_wav
         try:
             import winsound
