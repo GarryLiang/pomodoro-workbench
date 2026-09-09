@@ -10,6 +10,10 @@ jobs:
   test:
     name: "test (${{ matrix.os }} / Python ${{ matrix.python }})"
     runs-on: ${{ matrix.os }}
+    env:
+      # Windows runner 默认 cp1252，中文测试输出需强制 UTF-8
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: "utf-8"
     strategy:
       fail-fast: false
       matrix:
