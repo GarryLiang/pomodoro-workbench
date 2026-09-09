@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# 打包产物
+build/
+dist/
+*.spec
+
+# 编辑器
+.vscode/
+.idea/
+
+# 系统
+Thumbs.db
+.DS_Store
+
+# 测试临时库（正常运行时数据库保存在用户主目录 ~/.pomodoro_workbench/，
+# 不会出现在仓库内；此处兜底防止误放）
+*.db
+*.sqlite3
