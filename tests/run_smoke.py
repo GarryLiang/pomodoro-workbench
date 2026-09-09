@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.storage import Storage
 from app import settings as settings_mod
+from app import export as export_mod
 from app.alarm import synthesize_alarm
 import wave as wave_mod
 from app.context import AppContext
@@ -215,6 +216,52 @@ def test_stats_and_context():
             ctx.close()
 
 
+def test_export():
+    print("[7] 数据导出与备份")
+    with tempfile.TemporaryDirectory() as tmp:
+        ctx = AppContext(os.path.join(tmp, "t.db"))
+        try:
+            tid = ctx.todo.add("导出一号待办", note="备注A", priority=1)
+            ctx.todo.add("完成事项", priority=0)
+            ctx.todo.toggle_done(tid)
+            ctx.todo.increment_pomodoro(tid)
+            hid = ctx.habits.add_habit("喝水")
+            ctx.habits.check_in(hid)
+
+            todo_csv = export_mod.todos_to_csv(ctx.todo.list_todos())
+            check("待办 CSV 含表头", "标题" in todo_csv and "优先级" in todo_csv)
+            check("待办 CSV 含数据", "导出一号待办" in todo_csv
+                  and "已完成" in todo_csv)
+
+            habit_csv = export_mod.habits_to_csv(ctx.habits.list_habits())
+            check("习惯 CSV 含表头与数据", "习惯" in habit_csv
+                  and "喝水" in habit_csv and "总打卡天数" in habit_csv)
+
+            ctx.record_focus_session(task_id=tid, duration_min=25)
+            focus_csv = export_mod.export_focus_csv(ctx.storage)
+            check("专注 CSV 含记录", "focus" in focus_csv and "25" in focus_csv)
+            all_csv = export_mod.export_all_sessions_csv(ctx.storage)
+            check("全部记录 CSV 正常", "sessions" not in all_csv and len(all_csv) > 0)
+
+            # 写文件（UTF-8-BOM）
+            out_csv = os.path.join(tmp, "导出.csv")
+            export_mod.save_text_file(out_csv, todo_csv)
+            with open(out_csv, "rb") as fh:
+                head = fh.read(3)
+            check("文件带 UTF-8 BOM", head == b"\xef\xbb\xbf")
+
+            # 数据库备份
+            bak = os.path.join(tmp, "backup.db")
+            export_mod.backup_database(ctx.storage, bak)
+            check("备份文件存在且可打开", os.path.exists(bak)
+                  and os.path.getsize(bak) > 0)
+            bak_storage = Storage(bak)
+            check("备份可独立读取", bak_storage.get("focus_min") is not None)
+            bak_storage.close()
+        finally:
+            ctx.close()
+
+
 if __name__ == "__main__":
     test_storage_and_settings()
     test_todo()
@@ -222,4 +269,5 @@ if __name__ == "__main__":
     test_engine()
     test_stats_and_context()
     test_alarm()
+    test_export()
     print("\n全部 %d 项检查通过 ✔" % PASS)
