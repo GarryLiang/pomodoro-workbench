@@ -86,7 +86,7 @@ chmod +x start.sh
 ./start.sh      # 缺 Python/tkinter 时会打印对应系统的安装命令
 ```
 
-**想打包成独立 exe**
+**想打包成独立 exe：**
 ```bash
 双击 build_exe.bat      # 自动安装 PyInstaller 并生成 dist\PomodoroWorkbench.exe
 ```
