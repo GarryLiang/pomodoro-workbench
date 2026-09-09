@@ -204,8 +204,8 @@ python tests/gui_smoke.py   # GUI 冒烟：主窗口与 4 页构建切换（窗�
 
 ## 🙌 贡献者
 
-<!-- 在这里补充你的姓名与 GitHub 主页，贡献记录请以 GitHub 截图形式附在申报书中 -->
+<!-- 贡献记录请以 GitHub 截图形式附在申报书中 -->
 
-- 你的名字（项目发起人 / 核心开发者）
+- **GarryLiang**（项目发起人 / 核心开发者）— [GitHub](https://github.com/GarryLiang)
 
 <!-- 使用 GitHub 的 Issues / Pull Requests 功能协作；请在申报书附录六中粘贴贡献记录截图。 -->
