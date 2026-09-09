@@ -1,8 +1,12 @@
 """统计页：汇总数据与近 7 天专注趋势图。"""
 
+import os
 import tkinter as tk
-from tkinter import ttk
+from datetime import datetime
+from pathlib import Path
+from tkinter import filedialog, messagebox, ttk
 
+from app import export as export_mod
 from . import theme
 from .widgets import make_card, card_title, card_muted
 
@@ -65,6 +69,26 @@ class StatsView(ttk.Frame):
         self._progress_line(habit_box, "习惯平均完成率",
                             self.lb_habit, self.pb_habit)
 
+        # ---- 数据导出与备份
+        export_row = tk.Frame(top, bg=theme.CARD_BG)
+        export_row.grid(row=4, column=0, columnspan=4, sticky="ew",
+                        pady=(14, 0))
+        card_muted(export_row, "数据导出与备份（CSV 可用 Excel 直接打开）："
+                               ).pack(anchor="w", pady=(0, 6))
+        btns = tk.Frame(export_row, bg=theme.CARD_BG)
+        btns.pack(anchor="w")
+        export_items = [
+            ("导出待办 CSV", self._on_export_todo),
+            ("导出习惯 CSV", self._on_export_habits),
+            ("导出专注记录 CSV", self._on_export_focus),
+            ("导出全部记录 CSV", self._on_export_sessions),
+            ("备份数据库", self._on_backup_db),
+        ]
+        for text, cmd in export_items:
+            btn = ttk.Button(btns, text=text, style="Ghost.TButton",
+                             command=cmd)
+            btn.pack(side="left", padx=(0, 8))
+
         # ---- 趋势图卡
         chart_card = make_card(self, padding=18)
         chart_card.grid(row=1, column=0, sticky="nsew")
@@ -96,6 +120,66 @@ class StatsView(ttk.Frame):
                  font=theme.FONT_SMALL).pack(side="left")
         value_label.pack(side="right")
         bar.pack(fill="x", pady=(6, 0))
+
+    # ================================================================ 数据导出与备份
+    def _default_dir(self):
+        return str(Path.home() / "Documents") if os.path.isdir(
+            str(Path.home() / "Documents")) else str(Path.home())
+
+    def _ask_save(self, title, defname):
+        return filedialog.asksaveasfilename(
+            title=title, initialdir=self._default_dir(),
+            initialfile=defname, defaultextension=".csv",
+            filetypes=[("CSV 文件", "*.csv"), ("所有文件", "*.*")],
+            parent=self.winfo_toplevel())
+
+    def _on_export_todo(self):
+        path = self._ask_save("导出待办清单", "待办清单.csv")
+        if not path:
+            return
+        text = export_mod.todos_to_csv(self.context.todo.list_todos())
+        export_mod.save_text_file(path, text)
+        messagebox.showinfo("导出成功", "待办已导出到：\n%s" % path)
+
+    def _on_export_habits(self):
+        path = self._ask_save("导出习惯打卡", "习惯打卡.csv")
+        if not path:
+            return
+        habits = self.context.habits.list_habits()
+        text = export_mod.habits_to_csv(habits)
+        export_mod.save_text_file(path, text)
+        messagebox.showinfo("导出成功", "习惯数据已导出到：\n%s" % path)
+
+    def _on_export_focus(self):
+        path = self._ask_save("导出专注记录", "专注记录.csv")
+        if not path:
+            return
+        text = export_mod.export_focus_csv(self.context.storage)
+        export_mod.save_text_file(path, text)
+        messagebox.showinfo("导出成功", "专注记录已导出到：\n%s" % path)
+
+    def _on_export_sessions(self):
+        path = self._ask_save("导出全部阶段记录", "全部记录.csv")
+        if not path:
+            return
+        text = export_mod.export_all_sessions_csv(self.context.storage)
+        export_mod.save_text_file(path, text)
+        messagebox.showinfo("导出成功", "全部记录已导出到：\n%s" % path)
+
+    def _on_backup_db(self):
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        path = filedialog.asksaveasfilename(
+            title="备份数据库", initialdir=self._default_dir(),
+            initialfile="番茄工作台备份_%s.db" % stamp,
+            defaultextension=".db",
+            filetypes=[("SQLite 数据库", "*.db"), ("所有文件", "*.*")],
+            parent=self.winfo_toplevel())
+        if not path:
+            return
+        export_mod.backup_database(self.context.storage, path)
+        messagebox.showinfo("备份成功", "数据库已备份到：\n%s\n\n"
+                                      "还原方法：关闭软件后，用该文件替换\n"
+                                      "~/.pomodoro_workbench/data.db" % path)
 
     # ================================================================ 数据
     def refresh(self):
