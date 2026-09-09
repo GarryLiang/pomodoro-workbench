@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: "test (${{ matrix.os }} / Python ${{ matrix.python }})"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+        python: [ "3.10", "3.12" ]
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: 核心逻辑测试（零依赖，全平台）
+        run: python tests/run_smoke.py
+        shell: bash
+
+      - name: GUI 冒烟测试（验证 tkinter 四个页面可构建）
+        if: runner.os == 'Windows'
+        run: python tests/gui_smoke.py
+        shell: bash

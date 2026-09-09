@@ -1,5 +1,9 @@
 # 🍅 番茄工作台（Pomodoro Workbench）
 
+[![CI](https://github.com/GarryLiang/pomodoro-workbench/actions/workflows/test.yml/badge.svg)](https://github.com/GarryLiang/pomodoro-workbench/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org/)
+
 > 一款**零第三方依赖**的本地桌面效率工具：番茄专注 + 待办清单 + 习惯打卡 + 数据统计，
 > 全部由 Python 标准库（tkinter / sqlite3）实现，单机运行、数据仅存本地。
 
@@ -76,7 +80,10 @@
 > 无需任何第三方 Python 包。用户只需要 **Python 3.10+**（含 tkinter），
 > 没有的话脚本会帮你自动安装。
 
-**Windows 用户：**
+**💾 Windows 用户不想装 Python？** 直接下载已打包的独立程序（约 12MB，免安装）：
+[⬇️ 下载 PomodoroWorkbench.exe](https://github.com/GarryLiang/pomodoro-workbench/releases/latest/download/PomodoroWorkbench.exe)
+
+**Windows 用户（源码运行）：**
 1. 下载本项目 ZIP → 解压（或 `git clone`）；
 2. **双击 `start.bat`** —— 脚本会自动检测/安装 Python（缺 Python 时用 winget 静默安装当前用户版本），然后启动软件。
 
@@ -177,6 +184,11 @@ pomodoro-workbench/
 ├── tools/
 │   └── make_screenshots.py  # 开发者工具：自动生成 README 界面截图（需 Pillow）
 ├── screenshots/             # README 真实界面截图
+├── .github/workflows/       # CI：push / PR 自动运行全部测试
+├── CHANGELOG.md             # 更新日志
+├── CONTRIBUTING.md          # 贡献指南（含 PR 流程）
+├── ROADMAP.md               # 12 周迭代路线图
+├── SECURITY.md              # 安全说明与漏洞报告方式
 ├── start.bat                # Windows 一键启动（缺 Python 自动安装）
 ├── start.sh                 # macOS / Linux 一键启动
 ├── build_exe.bat            # 打包独立 exe（PyInstaller）
@@ -215,6 +227,13 @@ python tests/gui_smoke.py   # GUI 冒烟：主窗口与 4 页构建切换（窗�
 ```
 
 ---
+
+## 📚 文档与协作
+
+- [CHANGELOG.md](CHANGELOG.md) —— 版本更新日志
+- [ROADMAP.md](ROADMAP.md) —— 12 周迭代路线图
+- [CONTRIBUTING.md](CONTRIBUTING.md) —— 贡献指南（如何提 PR / 认领任务）
+- [SECURITY.md](SECURITY.md) —— 安全设计说明与漏洞报告
 
 ## 📄 开源许可
 
