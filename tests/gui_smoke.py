@@ -62,7 +62,29 @@ def main():
             view._on_apply_settings()
             win.update()
 
-            print("GUI 冒烟测试通过：4 个页面 + 4 套主题切换 + 提醒设置保存均正常")
+            # 迷你悬浮窗：显示 → 快捷操作 → 主题切换重建 → 隐藏
+            win.show_float_window()
+            win.update()
+            assert win.float_window is not None and win.float_window.is_visible(), \
+                "悬浮窗应处于显示状态"
+            win.float_window._on_toggle()      # 快捷开始专注
+            win.update()
+            assert ctx.engine.running, "悬浮窗快捷开始应生效"
+            win.float_window._on_skip()        # 快捷跳过
+            win.update()
+            win.apply_theme("dark")            # 主题切换应触发悬浮窗重建
+            win.update()
+            assert win.float_window.is_visible(), "主题切换后悬浮窗应仍然可见"
+            assert theme_mod.current == "dark"
+            win.apply_theme("light")
+            win.update()
+            win.restore_from_float()           # 返回主界面应隐藏悬浮窗
+            win.update()
+            assert not win.float_window.is_visible(), "返回主界面后悬浮窗应隐藏"
+            if ctx.engine.running:
+                ctx.engine.pause()
+
+            print("GUI 冒烟测试通过：4 个页面 + 4 套主题切换 + 提醒设置 + 迷你悬浮窗均正常")
         finally:
             if win is not None:
                 try:

@@ -306,6 +306,15 @@ def test_reminder_settings():
                   settings_mod.get_bool(st, "reminder_sound") is False)
             check("主题默认值存在",
                   settings_mod.get_str(st, "theme") == "light")
+            check("悬浮窗默认关闭",
+                  settings_mod.get_bool(st, "float_enabled") is False)
+            check("最小化自动显示悬浮窗默认开启",
+                  settings_mod.get_bool(st, "float_auto_minimize") is True)
+            settings_mod.set_bool(st, "float_enabled", True)
+            st.set("float_pos", "120,80")
+            check("悬浮窗开关与位置可保存",
+                  settings_mod.get_bool(st, "float_enabled") is True
+                  and settings_mod.get_str(st, "float_pos") == "120,80")
 
             custom = os.path.join(tmp, "my_alarm.wav")
             synthesize_alarm("focus", custom)

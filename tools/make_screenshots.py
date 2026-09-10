@@ -150,6 +150,14 @@ def main():
     _grab(popup, "05-阶段结束提醒.png")
     stop_active_alarm()
 
+    # 迷你悬浮窗（v1.2 新增）
+    win.show_float_window()
+    win.update()
+    time.sleep(0.3)
+    _grab(win.float_window, "10-迷你悬浮窗.png")
+    win.hide_float_window()
+    win.update()
+
     # 深色主题（v1.1 新增）
     win.apply_theme("dark")
     win.update()

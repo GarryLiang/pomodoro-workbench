@@ -1,4 +1,4 @@
-"""主窗口：侧边导航 + 页面容器 + 主题切换。"""
+"""主窗口：侧边导航 + 页面容器 + 主题切换 + 迷你悬浮窗。"""
 
 import tkinter as tk
 from tkinter import ttk
@@ -6,6 +6,7 @@ from tkinter import ttk
 from app import settings as settings_mod
 from app.themes import DEFAULT_THEME, label_for, name_for_label, theme_names
 from . import theme
+from .float_window import FloatWindow
 from .pomodoro_view import PomodoroView
 from .todo_view import TodoView
 from .habit_view import HabitView
@@ -13,7 +14,7 @@ from .stats_view import StatsView
 from .reminder import stop_active_alarm
 
 APP_TITLE = "番茄工作台"
-APP_VERSION = "v1.1.0"
+APP_VERSION = "v1.2.0"
 
 NAV_ITEMS = [
     ("pomodoro", "🍅  番茄专注"),
@@ -40,6 +41,8 @@ class MainWindow(tk.Tk):
         self._nav_buttons = {}
         self._current = None
         self._theme_var = tk.StringVar(value="")
+        self.float_window = None
+        self._float_auto_shown = False
 
         # 启动时按保存的设置为准（未知主题自动回退默认）
         saved_theme = context.storage.get("theme", DEFAULT_THEME)
@@ -53,6 +56,13 @@ class MainWindow(tk.Tk):
         self._build_body()
         self.switch("pomodoro")
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+
+        # 最小化时按用户设置自动弹出悬浮窗
+        self.bind("<Unmap>", self._on_root_unmap)
+        self.bind("<Map>", self._on_root_map)
+        # 上次退出时开启了悬浮窗，则恢复显示
+        if settings_mod.get_bool(context.storage, "float_enabled"):
+            self.after(300, self.show_float_window)
 
     # ================================================================ 界面
     def _build_sidebar(self):
@@ -91,6 +101,29 @@ class MainWindow(tk.Tk):
         self.theme_combo.set(label_for(theme.current))
         self.theme_combo.pack(fill="x", pady=(4, 0))
         self.theme_combo.bind("<<ComboboxSelected>>", self._on_theme_selected)
+
+        # ---- 迷你悬浮窗 ----
+        float_box = tk.Frame(sidebar, bg=theme.SIDEBAR_BG)
+        float_box.pack(side="bottom", fill="x", padx=14, pady=(0, 6))
+        tk.Label(float_box, text="🪟 迷你悬浮窗", bg=theme.SIDEBAR_BG,
+                 fg=theme.SIDEBAR_TEXT, font=theme.FONT_SMALL).pack(anchor="w")
+        self.var_float = tk.BooleanVar(
+            value=settings_mod.get_bool(self.context.storage, "float_enabled"))
+        self.var_float_auto = tk.BooleanVar(
+            value=settings_mod.get_bool(self.context.storage,
+                                        "float_auto_minimize"))
+        tk.Checkbutton(float_box, text="显示悬浮窗", variable=self.var_float,
+                       command=self._on_float_toggle, bg=theme.SIDEBAR_BG,
+                       fg=theme.SIDEBAR_TEXT, selectcolor=theme.SIDEBAR_ACTIVE,
+                       activebackground=theme.SIDEBAR_BG,
+                       activeforeground="#ffffff", font=theme.FONT_SMALL,
+                       highlightthickness=0).pack(anchor="w")
+        tk.Checkbutton(float_box, text="最小化时自动显示", variable=self.var_float_auto,
+                       command=self._on_float_auto_toggle, bg=theme.SIDEBAR_BG,
+                       fg=theme.SIDEBAR_TEXT_MUTED, selectcolor=theme.SIDEBAR_ACTIVE,
+                       activebackground=theme.SIDEBAR_BG,
+                       activeforeground="#ffffff", font=theme.FONT_SMALL,
+                       highlightthickness=0).pack(anchor="w")
 
         tk.Label(sidebar, text=APP_VERSION + " ｜ 数据仅存本地",
                  bg=theme.SIDEBAR_BG, fg=theme.SIDEBAR_TEXT_MUTED,
@@ -136,6 +169,68 @@ class MainWindow(tk.Tk):
         self._build_sidebar()
         self._build_body()
         self.switch(current)
+        if self.float_window is not None:
+            self.float_window.rebuild_for_theme()
+
+    # ================================================================ 悬浮窗
+    def show_float_window(self):
+        """创建（如需要）并显示迷你悬浮窗。"""
+        if self.float_window is None:
+            self.float_window = FloatWindow(self, self.context,
+                                            on_restore=self.restore_from_float)
+        self.float_window.show()
+        self.var_float.set(True)
+
+    def hide_float_window(self):
+        """隐藏迷你悬浮窗。"""
+        if self.float_window is not None:
+            self.float_window.hide()
+        self.var_float.set(False)
+
+    def _on_float_toggle(self):
+        if self.var_float.get():
+            self.show_float_window()
+        else:
+            self.hide_float_window()
+
+    def _on_float_auto_toggle(self):
+        settings_mod.set_bool(self.context.storage, "float_auto_minimize",
+                              bool(self.var_float_auto.get()))
+
+    def restore_from_float(self):
+        """从悬浮窗返回主界面：还原窗口并隐藏悬浮窗。"""
+        try:
+            self.deiconify()
+            self.state("normal")
+            self.lift()
+            self.focus_force()
+        except tk.TclError:
+            pass
+        self._float_auto_shown = False
+        self.hide_float_window()
+
+    def _on_root_unmap(self, event):
+        """主窗口被最小化时，按设置自动显示悬浮窗。"""
+        if event.widget is not self:
+            return
+        self.after(200, self._auto_show_float)
+
+    def _auto_show_float(self):
+        try:
+            iconic = self.state() == "iconic"
+        except tk.TclError:
+            return
+        if iconic and settings_mod.get_bool(self.context.storage,
+                                            "float_auto_minimize"):
+            self._float_auto_shown = True
+            self.show_float_window()
+
+    def _on_root_map(self, event):
+        """主窗口恢复显示时，收起此前自动弹出的悬浮窗。"""
+        if event.widget is not self or not self._float_auto_shown:
+            return
+        self._float_auto_shown = False
+        self.hide_float_window()
 
     # ================================================================ 页面切换
     def switch(self, key):
@@ -161,4 +256,10 @@ class MainWindow(tk.Tk):
                 self.context.engine.pause()
         except Exception:
             pass
+        if self.float_window is not None:
+            try:
+                self.float_window.destroy()
+            except tk.TclError:
+                pass
+            self.float_window = None
         self.destroy()

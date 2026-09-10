@@ -15,6 +15,9 @@ DEFAULT_SETTINGS = {
     "reminder_seconds": "20",  # 提醒自动停铃秒数（5~120）
     "custom_alarm_path": "",  # 自定义铃声文件（WAV），为空表示用内置三阶段铃声
     "theme": "light",         # 界面主题（light / dark / green / sakura）
+    "float_enabled": "0",       # 是否显示迷你悬浮窗（1/0）
+    "float_auto_minimize": "1",  # 主窗口最小化时自动显示悬浮窗（1/0）
+    "float_pos": "",            # 悬浮窗位置 "x,y"（空表示默认右下角）
 }
 
 
