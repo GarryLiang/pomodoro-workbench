@@ -67,9 +67,9 @@
 - 逾期任务红色提醒，顶部实时显示完成率
 
 ### 4. 🔥 习惯打卡
-- 自由添加/删除习惯，每日一键打卡（可取消）
+- 自由添加/删除习惯，每日一键打卡
 - 自动统计总打卡天数、当前连续天数、最长连续天数、本月完成率
-- **GitHub 风格打卡热力图**（近 15 周）：连续性和自律程度一目了然
+- **GitHub 风格打卡热力图**：连续性和自律程度一目了然
 
 ### 5. 📊 数据统计
 - 今日/累计番茄数与专注分钟数总览
@@ -97,10 +97,10 @@
 > 无需任何第三方 Python 包。用户只需要 **Python 3.10+**（含 tkinter），
 > 没有的话脚本会帮你自动安装。
 
-**💾 Windows 用户不想装 Python？** 直接下载已打包的独立程序（约 12MB，免安装）：
+**💾 Windows ** 直接下载已打包的独立程序（约 12MB，免安装）：
 [⬇️ 下载 PomodoroWorkbench.exe](https://github.com/GarryLiang/pomodoro-workbench/releases/latest/download/PomodoroWorkbench.exe)
 
-**Windows 用户（源码运行）：**
+**Windows 用户：**
 1. 下载本项目 ZIP → 解压（或 `git clone`）；
 2. **双击 `start.bat`** —— 脚本会自动检测/安装 Python（缺 Python 时用 winget 静默安装当前用户版本），然后启动软件。
 
@@ -116,7 +116,7 @@ chmod +x start.sh
 ```
 
 > `start.bat` 会自动跳过 Microsoft Store 的 Python 占位符、自动优先 `py` 启动器、
-> 并兼容 "仅当前用户" 安装的官方 Python —— 普通用户拿回家双击即可使用。
+> 并兼容 "仅当前用户" 安装的官方 Python —— 普通用户拿回家双击即可使用，非常方便！
 
 ---
 
@@ -201,12 +201,9 @@ pomodoro-workbench/
 │   ├── run_smoke.py         # 核心逻辑测试（62 项断言，含铃声合成校验）
 │   └── gui_smoke.py         # 界面构建冒烟测试
 ├── tools/
-│   └── make_screenshots.py  # 开发者工具：自动生成 README 界面截图（需 Pillow）
-├── screenshots/             # README 真实界面截图
 ├── .github/workflows/       # CI：push / PR 自动运行全部测试
 ├── CHANGELOG.md             # 更新日志
 ├── CONTRIBUTING.md          # 贡献指南（含 PR 流程）
-├── ROADMAP.md               # 12 周迭代路线图
 ├── SECURITY.md              # 安全说明与漏洞报告方式
 ├── start.bat                # Windows 一键启动（缺 Python 自动安装）
 ├── start.sh                 # macOS / Linux 一键启动
@@ -263,9 +260,5 @@ python tests/gui_smoke.py   # GUI 冒烟：主窗口与 4 页构建切换（窗�
 
 ## 🙌 贡献者
 
-<!-- 贡献记录请以 GitHub 截图形式附在申报书中 -->
-
 - **GarryLiang**（项目发起人 / 核心开发者）— [GitHub](https://github.com/GarryLiang)
 - **shengqksz**（贡献者）— [GitHub](https://github.com/shengqksz)：数据导出与一键备份功能（[PR #1](https://github.com/GarryLiang/pomodoro-workbench/pull/1)）
-
-<!-- 使用 GitHub 的 Issues / Pull Requests 功能协作；请在申报书附录六中粘贴贡献记录截图。 -->
