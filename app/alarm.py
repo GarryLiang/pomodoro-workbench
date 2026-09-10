@@ -133,6 +133,20 @@ def ensure_alarm_wav(kind=DEFAULT_KIND, wav_path=None):
     return str(target)
 
 
+def alarm_path_for(kind=DEFAULT_KIND, custom_path=None):
+    """解析实际要播放的铃声文件路径。
+
+    - 若用户指定了自定义铃声且文件存在，则使用自定义铃声（所有阶段通用）
+    - 否则返回该阶段内置合成铃声（必要时现场生成）
+    """
+    kind = _validate_kind(kind)
+    if custom_path:
+        candidate = Path(custom_path)
+        if candidate.is_file() and candidate.stat().st_size > 100:
+            return str(candidate)
+    return ensure_alarm_wav(kind)
+
+
 def all_alarm_fingerprints():
     """生成全部阶段铃声，返回 {kind: md5指纹}，供测试校验铃声互不相同。"""
     fingerprints = {}

@@ -37,7 +37,32 @@ def main():
             win.update()
             win.switch("habit")
             win.update()
-            print("GUI 冒烟测试通过：主窗口与 4 个页面均可正常构建与切换")
+
+            # 主题切换：每套主题都要能重建界面且不报错
+            from ui import theme as theme_mod
+            from app.themes import theme_names
+            for name in theme_names():
+                applied = win.apply_theme(name)
+                assert applied == name, "主题切换失败: %s" % name
+                win.update()
+                for key in ("pomodoro", "todo", "habit", "stats"):
+                    win.switch(key)
+                    win.update()
+                assert theme_mod.current == name
+            win.apply_theme("light")
+            win.update()
+
+            # 提醒设置面板：保存一次设置（不弹窗、不响铃）
+            win.switch("pomodoro")
+            win.update()
+            view = win._pages["pomodoro"]
+            view.var_popup.set(True)
+            view.var_sound.set(False)
+            view.var_seconds.set("30")
+            view._on_apply_settings()
+            win.update()
+
+            print("GUI 冒烟测试通过：4 个页面 + 4 套主题切换 + 提醒设置保存均正常")
         finally:
             if win is not None:
                 try:

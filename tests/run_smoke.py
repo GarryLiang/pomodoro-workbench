@@ -13,7 +13,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.storage import Storage
 from app import settings as settings_mod
 from app import export as export_mod
-from app.alarm import synthesize_alarm
+from app import themes as themes_mod
+from app.alarm import alarm_path_for, synthesize_alarm
 import wave as wave_mod
 from app.context import AppContext
 from app.todo import TodoManager, PRIORITY_HIGH
@@ -262,6 +263,61 @@ def test_export():
             ctx.close()
 
 
+def test_themes():
+    print("[8] 主题调色板")
+    names = themes_mod.theme_names()
+    check("提供 4 套主题", len(names) == 4)
+    for name in names:
+        palette = themes_mod.get_palette(name)
+        missing = [k for k in themes_mod.REQUIRED_KEYS if k not in palette]
+        check("[%s] 颜色键齐全（%d 个）" % (name, len(themes_mod.REQUIRED_KEYS)),
+              not missing)
+        check("[%s] 颜色格式为 #rrggbb" % name,
+              all(isinstance(v, str) and len(v) == 7 and v.startswith("#")
+                  for v in palette.values()))
+    check("每套主题都有显示名",
+          all(n in themes_mod.THEME_LABELS for n in names))
+    check("未知主题回退默认",
+          themes_mod.get_palette("not-exist") ==
+          themes_mod.get_palette(themes_mod.DEFAULT_THEME))
+    check("显示名可反查主题键",
+          themes_mod.name_for_label(themes_mod.label_for("dark")) == "dark")
+    check("浅色与深色背景不同",
+          themes_mod.get_palette("light")["BG"]
+          != themes_mod.get_palette("dark")["BG"])
+
+
+def test_reminder_settings():
+    print("[9] 提醒设置与自定义铃声")
+    with tempfile.TemporaryDirectory() as tmp:
+        ctx = AppContext(os.path.join(tmp, "t.db"))
+        try:
+            st = ctx.storage
+            check("弹窗/响铃开关默认开启",
+                  settings_mod.get_bool(st, "reminder_popup")
+                  and settings_mod.get_bool(st, "reminder_sound"))
+            check("停铃秒数默认 20",
+                  settings_mod.get_int(st, "reminder_seconds") == 20)
+            settings_mod.set_int(st, "reminder_seconds", 35)
+            check("停铃秒数可修改",
+                  settings_mod.get_int(st, "reminder_seconds") == 35)
+            settings_mod.set_bool(st, "reminder_sound", False)
+            check("响铃可单独关闭",
+                  settings_mod.get_bool(st, "reminder_sound") is False)
+            check("主题默认值存在",
+                  settings_mod.get_str(st, "theme") == "light")
+
+            custom = os.path.join(tmp, "my_alarm.wav")
+            synthesize_alarm("focus", custom)
+            check("自定义铃声优先",
+                  alarm_path_for("short_break", custom) == custom)
+            check("自定义失效时回退内置",
+                  alarm_path_for("focus", os.path.join(tmp, "nope.wav"))
+                  .endswith(".wav"))
+        finally:
+            ctx.close()
+
+
 if __name__ == "__main__":
     test_storage_and_settings()
     test_todo()
@@ -270,4 +326,6 @@ if __name__ == "__main__":
     test_stats_and_context()
     test_alarm()
     test_export()
+    test_themes()
+    test_reminder_settings()
     print("\n全部 %d 项检查通过 ✔" % PASS)

@@ -50,10 +50,10 @@ class HabitView(ttk.Frame):
         self.listbox = tk.Listbox(left, height=12, width=24,
                                   bg=theme.CARD_BG, fg=theme.TEXT_DARK,
                                   font=theme.FONT_BODY,
-                                  selectbackground="#dbe7f7",
+                                  selectbackground=theme.SELECT_BG,
                                   selectforeground=theme.TEXT_DARK,
                                   highlightthickness=1,
-                                  highlightbackground="#e1e6ef",
+                                  highlightbackground=theme.CARD_BORDER,
                                   bd=0, activestyle="none")
         self.listbox.pack(fill="both", expand=True)
         self.listbox.bind("<<ListboxSelect>>", self._on_select)
@@ -117,7 +117,7 @@ class HabitView(ttk.Frame):
 
     def _stat_box(self, parent, col, caption):
         box = tk.Frame(parent, bg=theme.CARD_BG,
-                       highlightbackground="#eef1f7", highlightthickness=1)
+                       highlightbackground=theme.SEP, highlightthickness=1)
         box.grid(row=0, column=col, sticky="ew", padx=3, pady=2)
         parent.columnconfigure(col, weight=1)
         value = tk.Label(box, text="0", bg=theme.CARD_BG, fg=theme.TEXT_DARK,

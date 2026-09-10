@@ -150,6 +150,26 @@ def main():
     _grab(popup, "05-阶段结束提醒.png")
     stop_active_alarm()
 
+    # 深色主题（v1.1 新增）
+    win.apply_theme("dark")
+    win.update()
+    win.switch("pomodoro")
+    _grab(win, "06-深色主题.png")
+    win.switch("stats")
+    _grab(win, "07-深色主题-统计.png")
+
+    # 其他主题（v1.1 新增）
+    win.apply_theme("green")
+    win.update()
+    win.switch("pomodoro")
+    _grab(win, "08-护眼绿主题.png")
+    win.apply_theme("sakura")
+    win.update()
+    win.switch("habit")
+    _grab(win, "09-樱花粉主题-习惯.png")
+    win.apply_theme("light")
+    win.update()
+
     win.destroy()
     context.close()
     print("全部截图完成 ->", OUT_DIR)

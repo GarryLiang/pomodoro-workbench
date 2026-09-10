@@ -1,8 +1,10 @@
-"""主窗口：侧边导航 + 页面容器。"""
+"""主窗口：侧边导航 + 页面容器 + 主题切换。"""
 
 import tkinter as tk
 from tkinter import ttk
 
+from app import settings as settings_mod
+from app.themes import DEFAULT_THEME, label_for, name_for_label, theme_names
 from . import theme
 from .pomodoro_view import PomodoroView
 from .todo_view import TodoView
@@ -11,7 +13,7 @@ from .stats_view import StatsView
 from .reminder import stop_active_alarm
 
 APP_TITLE = "番茄工作台"
-APP_VERSION = "v1.0.0"
+APP_VERSION = "v1.1.0"
 
 NAV_ITEMS = [
     ("pomodoro", "🍅  番茄专注"),
@@ -37,12 +39,16 @@ class MainWindow(tk.Tk):
         self._pages = {}
         self._nav_buttons = {}
         self._current = None
+        self._theme_var = tk.StringVar(value="")
+
+        # 启动时按保存的设置为准（未知主题自动回退默认）
+        saved_theme = context.storage.get("theme", DEFAULT_THEME)
+        theme.apply(saved_theme)
+        theme.setup_style(self)
 
         self.title("%s %s" % (APP_TITLE, APP_VERSION))
         self.geometry("1040x680")
         self.minsize(940, 620)
-        theme.setup_style(self)
-
         self._build_sidebar()
         self._build_body()
         self.switch("pomodoro")
@@ -50,9 +56,10 @@ class MainWindow(tk.Tk):
 
     # ================================================================ 界面
     def _build_sidebar(self):
-        sidebar = tk.Frame(self, bg=theme.SIDEBAR_BG, width=180)
+        sidebar = tk.Frame(self, bg=theme.SIDEBAR_BG, width=186)
         sidebar.pack(side="left", fill="y")
         sidebar.pack_propagate(False)
+        self.sidebar = sidebar
 
         logo = tk.Frame(sidebar, bg=theme.SIDEBAR_BG)
         logo.pack(fill="x", pady=(22, 6), padx=16)
@@ -60,10 +67,10 @@ class MainWindow(tk.Tk):
                  fg="#ffffff", font=(theme.FONT_FAMILY, 15, "bold")).pack(
             anchor="w")
         tk.Label(logo, text="专注 · 待办 · 习惯", bg=theme.SIDEBAR_BG,
-                 fg="#8fa2bb", font=theme.FONT_SMALL).pack(anchor="w",
-                                                           pady=(2, 0))
+                 fg=theme.SIDEBAR_TEXT_MUTED,
+                 font=theme.FONT_SMALL).pack(anchor="w", pady=(2, 0))
 
-        line = tk.Frame(sidebar, bg="#33465f", height=1)
+        line = tk.Frame(sidebar, bg=theme.SIDEBAR_LINE, height=1)
         line.pack(fill="x", padx=14, pady=10)
 
         for key, label in NAV_ITEMS:
@@ -72,9 +79,22 @@ class MainWindow(tk.Tk):
             btn.pack(fill="x", padx=10, pady=2)
             self._nav_buttons[key] = btn
 
-        tk.Label(sidebar, text=APP_VERSION + " ｜ 数据仅存本地", bg=theme.SIDEBAR_BG,
-                 fg="#66788f", font=theme.FONT_SMALL).pack(side="bottom",
-                                                           pady=14)
+        # ---- 主题切换 ----
+        theme_box = tk.Frame(sidebar, bg=theme.SIDEBAR_BG)
+        theme_box.pack(side="bottom", fill="x", padx=14, pady=(0, 6))
+        tk.Label(theme_box, text="🎨 界面主题", bg=theme.SIDEBAR_BG,
+                 fg=theme.SIDEBAR_TEXT, font=theme.FONT_SMALL).pack(anchor="w")
+        self._theme_var.set(label_for(theme.current))
+        self.theme_combo = ttk.Combobox(
+            theme_box, state="readonly", width=14,
+            values=[label_for(name) for name in theme_names()])
+        self.theme_combo.set(label_for(theme.current))
+        self.theme_combo.pack(fill="x", pady=(4, 0))
+        self.theme_combo.bind("<<ComboboxSelected>>", self._on_theme_selected)
+
+        tk.Label(sidebar, text=APP_VERSION + " ｜ 数据仅存本地",
+                 bg=theme.SIDEBAR_BG, fg=theme.SIDEBAR_TEXT_MUTED,
+                 font=theme.FONT_SMALL).pack(side="bottom", pady=12)
 
     def _build_body(self):
         body = tk.Frame(self, bg=theme.BG)
@@ -82,6 +102,40 @@ class MainWindow(tk.Tk):
         body.columnconfigure(0, weight=1)
         body.rowconfigure(0, weight=1)
         self.body = body
+
+    # ================================================================ 主题
+    def _on_theme_selected(self, _event=None):
+        name = name_for_label(self.theme_combo.get())
+        if name is None:
+            return
+        self.apply_theme(name)
+
+    def apply_theme(self, name):
+        """切换主题：保存设置 → 应用调色板 → 重建界面。"""
+        name = theme.apply(name)
+        settings_mod.set_str(self.context.storage, "theme", name)
+        theme.setup_style(self)
+        self._rebuild_ui()
+        return name
+
+    def _rebuild_ui(self):
+        """主题切换后重建侧边栏与页面，使 tk 控件的配色全部刷新。"""
+        current = self._current or "pomodoro"
+        for page in self._pages.values():
+            try:
+                page.destroy()
+            except tk.TclError:
+                pass
+        self._pages.clear()
+        self._nav_buttons.clear()
+        try:
+            self.sidebar.destroy()
+            self.body.destroy()
+        except tk.TclError:
+            pass
+        self._build_sidebar()
+        self._build_body()
+        self.switch(current)
 
     # ================================================================ 页面切换
     def switch(self, key):

@@ -1,23 +1,29 @@
-"""阶段结束提醒：按阶段播放专属闹钟铃声 + 置顶弹窗。
+"""阶段结束提醒：按阶段播放专属铃声 + 置顶弹窗（支持自定义铃声与试听）。
 
-- 铃声：播放 app.alarm 现场合成的 WAV（Windows 异步循环播放，
-  其他平台回退为系统铃音）；每个阶段（专注/短休息/长休息）旋律不同。
-- 弹窗：非模态置顶窗口，显示当前结束的阶段，点击按钮或 20 秒后自动关闭，
-  关闭即停铃。
+- 铃声：默认使用 app.alarm 现场合成的三阶段专属 WAV；若用户在设置中
+  指定了自定义 WAV，则统一使用自定义铃声。
+- 弹窗：非模态置顶窗口，点击按钮或到达设定秒数后自动关闭，关闭即停铃。
+- 也支持"只响铃不弹窗"与"只弹窗不响铃"两种模式。
+- 提供 play_preview() 供设置界面随时试听。
 """
 
+import os
 import tkinter as tk
 
-from app.alarm import ensure_alarm_wav, DEFAULT_KIND
+from app.alarm import DEFAULT_KIND, alarm_path_for
 from . import theme
 
-_AUTO_CLOSE_MS = 20 * 1000
+DEFAULT_AUTO_CLOSE_MS = 20 * 1000
+
 _active_popup = None
 _playing_wav = False
+_stop_after_id = None
+_stop_after_widget = None
 
 
+# ------------------------------------------------------------------ 声音控制
 def _stop_sound():
-    """停止循环铃声（仅 Windows PlaySound 路径）。"""
+    """停止循环铃声（Windows PlaySound 路径）。"""
     global _playing_wav
     if not _playing_wav:
         return
@@ -30,9 +36,21 @@ def _stop_sound():
         _playing_wav = False
 
 
+def _cancel_stop_timer():
+    global _stop_after_id, _stop_after_widget
+    if _stop_after_id is not None and _stop_after_widget is not None:
+        try:
+            _stop_after_widget.after_cancel(_stop_after_id)
+        except tk.TclError:
+            pass
+    _stop_after_id = None
+    _stop_after_widget = None
+
+
 def stop_active_alarm():
-    """应用关闭等场景下强制停铃并关闭弹窗。"""
+    """停止铃声、取消定时停铃并关闭提醒弹窗（应用关闭时也会调用）。"""
     global _active_popup
+    _cancel_stop_timer()
     _stop_sound()
     if _active_popup is not None:
         try:
@@ -43,17 +61,71 @@ def stop_active_alarm():
         _active_popup = None
 
 
-def show_phase_reminder(root, phase_label, message, icon="🍅", sound=DEFAULT_KIND,
-                        play_sound=True):
-    """弹出阶段结束提醒，并循环播放该阶段专属闹铃。
+def _play_wav(path):
+    """播放 WAV（循环），成功返回 True。"""
+    global _playing_wav
+    try:
+        import winsound
+        winsound.PlaySound(
+            path,
+            winsound.SND_FILENAME | winsound.SND_ASYNC
+            | winsound.SND_LOOP | winsound.SND_NODEFAULT)
+        _playing_wav = True
+        return True
+    except Exception:
+        return False
 
-    若已有提醒弹窗则先关闭旧弹窗，保证同一时刻只有一个提醒。
-    sound 取值：focus / short_break / long_break（见 app.alarm.KINDS）。
-    play_sound=False 时只弹窗不响铃（用于截图等静默场景）。
+
+def _schedule_auto_stop(widget, milliseconds):
+    """到点自动停铃（即使没有弹窗，也要能停下来）。"""
+    global _stop_after_id, _stop_after_widget
+    _cancel_stop_timer()
+    try:
+        _stop_after_widget = widget
+        _stop_after_id = widget.after(int(milliseconds), _stop_sound)
+    except tk.TclError:
+        _stop_after_widget = None
+        _stop_after_id = None
+
+
+def play_preview(root, kind=DEFAULT_KIND, custom_path=None,
+                 seconds=15):
+    """试听指定阶段的铃声（先停掉当前响铃），返回实际播放的文件路径。"""
+    stop_active_alarm()
+    path = alarm_path_for(kind, custom_path)
+    if _play_wav(path):
+        _schedule_auto_stop(root, seconds * 1000)
+    else:
+        try:
+            root.bell()
+        except tk.TclError:
+            pass
+    return path
+
+
+# ------------------------------------------------------------------ 提醒入口
+def show_phase_reminder(root, phase_label, message, icon="🍅",
+                        sound=DEFAULT_KIND, play_sound=True, show_popup=True,
+                        auto_close_ms=None, custom_alarm=None):
+    """阶段结束提醒。
+
+    show_popup=False 时只响铃不弹窗；play_sound=False 时只弹窗不响铃。
+    两者都为 False 时不做任何事（由调用方提前判断更省事）。
     """
     global _active_popup
     stop_active_alarm()
-    popup = ReminderPopup(root, phase_label, message, icon, sound, play_sound)
+    auto_close_ms = int(auto_close_ms or DEFAULT_AUTO_CLOSE_MS)
+
+    if not show_popup:
+        if play_sound:
+            path = alarm_path_for(sound, custom_alarm)
+            if _play_wav(path):
+                _schedule_auto_stop(root, auto_close_ms)
+        return None
+
+    popup = ReminderPopup(root, phase_label, message, icon, sound,
+                          play_sound=play_sound, auto_close_ms=auto_close_ms,
+                          custom_alarm=custom_alarm)
     _active_popup = popup
     return popup
 
@@ -62,10 +134,13 @@ class ReminderPopup(tk.Toplevel):
     """置顶的提醒弹窗。"""
 
     def __init__(self, master, phase_label, message, icon="🍅",
-                 sound=DEFAULT_KIND, play_sound=True):
+                 sound=DEFAULT_KIND, play_sound=True, auto_close_ms=None,
+                 custom_alarm=None):
         super().__init__(master)
         self._sound_kind = sound
         self._play_sound_flag = play_sound
+        self._custom_alarm = custom_alarm
+        self._auto_close_ms = int(auto_close_ms or DEFAULT_AUTO_CLOSE_MS)
         self._auto_close_id = None
         self.overrideredirect(False)
         self.title("阶段结束提醒")
@@ -83,19 +158,18 @@ class ReminderPopup(tk.Toplevel):
         tk.Label(box, text=message, bg=theme.CARD_BG, fg=theme.TEXT_MUTED,
                  font=theme.FONT_SUB, wraplength=300, justify="center").pack(
             pady=(0, 14))
-        ttk_ok = tk.Button(box, text="🔔 知道了（停铃）", bg=theme.ACCENT,
-                           fg="#ffffff", activebackground=theme.ACCENT_DARK,
-                           activeforeground="#ffffff", relief="flat",
-                           font=(theme.FONT_FAMILY, 10, "bold"),
-                           padx=18, pady=6, cursor="hand2",
-                           command=self.close)
-        ttk_ok.pack()
+        tk.Button(box, text="🔔 知道了（停铃）", bg=theme.ACCENT,
+                  fg="#ffffff", activebackground=theme.ACCENT_DARK,
+                  activeforeground="#ffffff", relief="flat",
+                  font=(theme.FONT_FAMILY, 10, "bold"),
+                  padx=18, pady=6, cursor="hand2",
+                  command=self.close).pack()
 
         self._center_on(master)
         self.lift()
         self.focus_force()
-        self._play_sound()
-        self._auto_close_id = self.after(_AUTO_CLOSE_MS, self._auto_close)
+        self._play()
+        self._auto_close_id = self.after(self._auto_close_ms, self._auto_close)
 
     # ------------------------------------------------------------------
     def _center_on(self, master):
@@ -113,27 +187,17 @@ class ReminderPopup(tk.Toplevel):
         y = my + max(0, (mh - h) // 3)
         self.geometry("+%d+%d" % (x, y))
 
-    def _play_sound(self):
+    def _play(self):
         if not self._play_sound_flag:
             return
-        global _playing_wav
-        try:
-            import winsound
-            wav_path = ensure_alarm_wav(self._sound_kind)
-            winsound.PlaySound(
-                wav_path,
-                winsound.SND_FILENAME | winsound.SND_ASYNC
-                | winsound.SND_LOOP | winsound.SND_NODEFAULT)
-            _playing_wav = True
-            return
-        except Exception:
-            pass
-        # 跨平台回退：铃音几声
-        try:
-            for _ in range(3):
-                self.bell()
-        except tk.TclError:
-            pass
+        path = alarm_path_for(self._sound_kind, self._custom_alarm)
+        if not _play_wav(path):
+            # 跨平台回退：铃音几声
+            try:
+                for _ in range(3):
+                    self.bell()
+            except tk.TclError:
+                pass
 
     def _auto_close(self):
         self._auto_close_id = None
@@ -155,3 +219,8 @@ class ReminderPopup(tk.Toplevel):
             self.destroy()
         except tk.TclError:
             pass
+
+
+def custom_alarm_available(path):
+    """判断自定义铃声文件是否可用（供界面显示状态）。"""
+    return bool(path) and os.path.isfile(path) and os.path.getsize(path) > 100

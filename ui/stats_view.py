@@ -46,7 +46,7 @@ class StatsView(ttk.Frame):
         for col, (key, caption, _placeholder) in enumerate(tiles):
             self.tiles[key] = self._tile(top, col, caption)
 
-        sep = tk.Frame(top, height=1, bg="#eef1f7")
+        sep = tk.Frame(top, height=1, bg=theme.SEP)
         sep.grid(row=2, column=0, columnspan=4, sticky="ew", pady=14)
 
         todo_box = tk.Frame(top, bg=theme.CARD_BG)
@@ -103,13 +103,13 @@ class StatsView(ttk.Frame):
         self.canvas.bind("<Configure>", lambda _e: self._draw_chart())
 
     def _tile(self, parent, col, caption):
-        box = tk.Frame(parent, bg="#fff7ef",
-                       highlightbackground="#ffd9b8", highlightthickness=1)
+        box = tk.Frame(parent, bg=theme.TILE_BG,
+                       highlightbackground=theme.TILE_BORDER, highlightthickness=1)
         box.grid(row=1, column=col, sticky="ew", padx=4)
-        value = tk.Label(box, text="…", bg="#fff7ef", fg=theme.ACCENT_DARK,
+        value = tk.Label(box, text="…", bg=theme.TILE_BG, fg=theme.ACCENT_DARK,
                          font=theme.FONT_STAT)
         value.pack(pady=(10, 0))
-        tk.Label(box, text=caption, bg="#fff7ef", fg=theme.TEXT_MUTED,
+        tk.Label(box, text=caption, bg=theme.TILE_BG, fg=theme.TEXT_MUTED,
                  font=theme.FONT_SMALL).pack(pady=(0, 8))
         return value
 
@@ -224,11 +224,11 @@ class StatsView(ttk.Frame):
         # 网格线
         canvas.create_rectangle(margin_l, margin_t,
                                 margin_l + plot_w, margin_t + plot_h,
-                                outline="#e1e6ef", fill="#fafbfe")
+                                outline=theme.PLOT_BORDER, fill=theme.PLOT_BG)
         for i in range(5):
             y = margin_t + plot_h - plot_h * i / 4
             canvas.create_line(margin_l, y, margin_l + plot_w, y,
-                               fill="#edf0f6")
+                               fill=theme.PLOT_GRID)
             canvas.create_text(margin_l - 8, y, text=str(round(scale * i / 4)),
                                anchor="e", fill=theme.TEXT_MUTED,
                                font=theme.FONT_SMALL)

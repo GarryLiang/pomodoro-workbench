@@ -1,7 +1,8 @@
 """专注页：番茄钟主界面。"""
 
+import os
 import tkinter as tk
-from tkinter import ttk
+from tkinter import filedialog, ttk
 
 from app import settings as settings_mod
 from app.pomodoro import (
@@ -10,10 +11,18 @@ from app.pomodoro import (
     EV_RESET, EV_PHASE_CHANGED,
 )
 from . import theme
-from .reminder import show_phase_reminder
+from .reminder import (custom_alarm_available, play_preview,
+                       show_phase_reminder, stop_active_alarm)
 from .widgets import make_card, card_title, card_muted
 
 NONE_TASK = "（不关联待办）"
+
+# 试听铃声下拉框选项 -> 阶段常量
+PREVIEW_KINDS = {
+    "专注结束铃声（凯旋）": PHASE_FOCUS,
+    "短休息结束铃声（双音）": PHASE_SHORT,
+    "长休息结束铃声（号角）": PHASE_LONG,
+}
 
 
 class PomodoroView(ttk.Frame):
@@ -27,7 +36,7 @@ class PomodoroView(ttk.Frame):
         self._after_id = None
         self._task_map = {}
         self._build()
-        self.engine.on(self._on_engine_event)
+        self._engine_off = self.engine.on(self._on_engine_event)
         self._poll()
 
     # ================================================================ 构建界面
@@ -112,7 +121,11 @@ class PomodoroView(ttk.Frame):
         self.var_long = tk.StringVar(value="15")
         self.var_interval = tk.StringVar(value="4")
         self.var_auto = tk.BooleanVar(value=True)
-        self.var_reminder = tk.BooleanVar(value=True)
+        self.var_popup = tk.BooleanVar(value=True)
+        self.var_sound = tk.BooleanVar(value=True)
+        self.var_seconds = tk.StringVar(value="20")
+        self.var_preview = tk.StringVar(value=list(PREVIEW_KINDS)[0])
+        self.var_custom = tk.StringVar(value="")
 
         form = tk.Frame(right, bg=theme.CARD_BG)
         form.pack(fill="x")
@@ -122,6 +135,7 @@ class PomodoroView(ttk.Frame):
         self._add_row(form, 1, "短休息（分）", self.var_short, 1, 60)
         self._add_row(form, 2, "长休息（分）", self.var_long, 1, 120)
         self._add_row(form, 3, "间隔（个专注）", self.var_interval, 1, 12)
+        self._add_row(form, 4, "停铃时长（秒）", self.var_seconds, 5, 120)
 
         auto_row = tk.Frame(right, bg=theme.CARD_BG)
         auto_row.pack(fill="x", pady=(8, 0))
@@ -131,17 +145,50 @@ class PomodoroView(ttk.Frame):
                        activebackground=theme.CARD_BG,
                        highlightthickness=0).pack(anchor="w")
 
+        # ---- 闹钟提醒设置 ----
+        alarm_sep = tk.Frame(right, height=1, bg=theme.SEP)
+        alarm_sep.pack(fill="x", pady=(10, 8))
+        card_muted(right, "闹钟提醒（不同阶段铃声不同）").pack(fill="x")
+
         remind_row = tk.Frame(right, bg=theme.CARD_BG)
-        remind_row.pack(fill="x", pady=(2, 10))
-        tk.Checkbutton(remind_row, text="阶段结束响铃 + 弹窗提醒",
-                       variable=self.var_reminder, bg=theme.CARD_BG,
-                       fg=theme.TEXT_DARK, font=theme.FONT_BODY,
-                       activebackground=theme.CARD_BG,
-                       highlightthickness=0).pack(anchor="w")
+        remind_row.pack(fill="x", pady=(6, 0))
+        tk.Checkbutton(remind_row, text="弹窗提醒", variable=self.var_popup,
+                       bg=theme.CARD_BG, fg=theme.TEXT_DARK,
+                       font=theme.FONT_BODY, activebackground=theme.CARD_BG,
+                       highlightthickness=0).pack(side="left")
+        tk.Checkbutton(remind_row, text="响铃提醒", variable=self.var_sound,
+                       bg=theme.CARD_BG, fg=theme.TEXT_DARK,
+                       font=theme.FONT_BODY, activebackground=theme.CARD_BG,
+                       highlightthickness=0).pack(side="left", padx=(12, 0))
+
+        preview_row = tk.Frame(right, bg=theme.CARD_BG)
+        preview_row.pack(fill="x", pady=(8, 0))
+        self.combo_preview = ttk.Combobox(preview_row, state="readonly",
+                                          width=18,
+                                          values=list(PREVIEW_KINDS))
+        self.combo_preview.set(list(PREVIEW_KINDS)[0])
+        self.combo_preview.pack(side="left", fill="x", expand=True)
+        ttk.Button(preview_row, text="试听", style="Ghost.TButton",
+                   command=self._on_preview_alarm).pack(side="left", padx=(6, 0))
+        ttk.Button(preview_row, text="停止", style="Ghost.TButton",
+                   command=self._on_stop_preview).pack(side="left", padx=(4, 0))
+
+        custom_row = tk.Frame(right, bg=theme.CARD_BG)
+        custom_row.pack(fill="x", pady=(8, 0))
+        self.custom_label = tk.Label(custom_row, text="", bg=theme.CARD_BG,
+                                     fg=theme.TEXT_MUTED, font=theme.FONT_SMALL,
+                                     anchor="w")
+        self.custom_label.pack(fill="x")
+        custom_btns = tk.Frame(right, bg=theme.CARD_BG)
+        custom_btns.pack(fill="x", pady=(4, 0))
+        ttk.Button(custom_btns, text="选择自定义铃声…", style="Ghost.TButton",
+                   command=self._on_choose_alarm).pack(side="left")
+        ttk.Button(custom_btns, text="恢复内置", style="Ghost.TButton",
+                   command=self._on_clear_alarm).pack(side="left", padx=(6, 0))
 
         apply_btn = ttk.Button(right, text="应用设置", style="Accent.TButton",
                                command=self._on_apply_settings)
-        apply_btn.pack(fill="x", pady=(4, 10))
+        apply_btn.pack(fill="x", pady=(12, 10))
 
         self.settings_hint = card_muted(right, "")
         self.settings_hint.pack(fill="x")
@@ -158,30 +205,79 @@ class PomodoroView(ttk.Frame):
     # ================================================================ 设置
     def _load_settings(self):
         cfg = self.context.engine_settings()
+        storage = self.context.storage
         self.var_focus.set(str(cfg["focus_min"]))
         self.var_short.set(str(cfg["short_break_min"]))
         self.var_long.set(str(cfg["long_break_min"]))
         self.var_interval.set(str(cfg["long_break_after"]))
         self.var_auto.set(cfg["auto_start"])
-        self.var_reminder.set(settings_mod.get_bool(
-            self.context.storage, "reminder_enabled"))
+        self.var_popup.set(settings_mod.get_bool(storage, "reminder_popup"))
+        self.var_sound.set(settings_mod.get_bool(storage, "reminder_sound"))
+        self.var_seconds.set(str(settings_mod.get_int(storage,
+                                                     "reminder_seconds")))
+        self.var_custom.set(storage.get("custom_alarm_path", "") or "")
+        self._update_custom_label()
         self.settings_hint.config(text="")
 
+    def _update_custom_label(self):
+        path = self.var_custom.get().strip()
+        if not path:
+            self.custom_label.config(text="铃声：内置三阶段音效", fg=theme.TEXT_MUTED)
+        elif custom_alarm_available(path):
+            self.custom_label.config(text="铃声：自定义 %s"
+                                          % os.path.basename(path),
+                                     fg=theme.GREEN)
+        else:
+            self.custom_label.config(text="铃声：自定义文件不可用，将回退内置音效",
+                                     fg=theme.RED)
+
+    def _on_choose_alarm(self):
+        path = filedialog.askopenfilename(
+            title="选择铃声文件（WAV）",
+            filetypes=[("WAV 音频", "*.wav"), ("所有文件", "*.*")],
+            parent=self.winfo_toplevel())
+        if not path:
+            return
+        self.var_custom.set(path)
+        self._update_custom_label()
+
+    def _on_clear_alarm(self):
+        self.var_custom.set("")
+        self._update_custom_label()
+
+    def _on_preview_alarm(self):
+        kind = PREVIEW_KINDS.get(self.combo_preview.get(), PHASE_FOCUS)
+        custom = self.var_custom.get().strip() or None
+        path = play_preview(self.winfo_toplevel(), kind, custom, seconds=15)
+        self.settings_hint.config(text="正在试听：%s（15 秒后自动停止）"
+                                       % os.path.basename(path), fg=theme.BLUE)
+
+    def _on_stop_preview(self):
+        stop_active_alarm()
+        self.settings_hint.config(text="已停止试听", fg=theme.TEXT_MUTED)
+
     def _on_apply_settings(self):
-        def num(var, default):
+        def num(var, default, lo=1, hi=999):
             try:
-                return max(1, int(var.get()))
+                return max(lo, min(hi, int(var.get())))
             except (ValueError, tk.TclError):
                 return default
 
-        focus = num(self.var_focus, 25)
-        short = num(self.var_short, 5)
-        long_ = num(self.var_long, 15)
-        interval = num(self.var_interval, 4)
+        focus = num(self.var_focus, 25, 1, 180)
+        short = num(self.var_short, 5, 1, 60)
+        long_ = num(self.var_long, 15, 1, 120)
+        interval = num(self.var_interval, 4, 1, 12)
+        seconds = num(self.var_seconds, 20, 5, 120)
         self.context.apply_engine_settings(
             focus, short, long_, min(interval, 12), bool(self.var_auto.get()))
-        settings_mod.set_bool(self.context.storage, "reminder_enabled",
-                              bool(self.var_reminder.get()))
+        storage = self.context.storage
+        popup = bool(self.var_popup.get())
+        sound = bool(self.var_sound.get())
+        settings_mod.set_bool(storage, "reminder_popup", popup)
+        settings_mod.set_bool(storage, "reminder_sound", sound)
+        settings_mod.set_int(storage, "reminder_seconds", seconds)
+        settings_mod.set_bool(storage, "reminder_enabled", popup or sound)
+        storage.set("custom_alarm_path", self.var_custom.get().strip())
         self._load_settings()
         self.settings_hint.config(text="设置已保存并生效", fg=theme.GREEN)
         self._refresh_ui()
@@ -242,9 +338,17 @@ class PomodoroView(ttk.Frame):
         self._maybe_remind(phase)
 
     def _maybe_remind(self, phase):
-        """阶段结束时：按设置弹出闹钟提醒，不同阶段播放不同铃声。"""
-        if not settings_mod.get_bool(self.context.storage,
-                                     "reminder_enabled"):
+        """阶段结束时：按设置弹出/播放提醒，不同阶段铃声不同。
+
+        支持三种模式：弹窗+响铃 / 只弹窗 / 只响铃，以及自定义铃声文件与
+        自定义自动停铃时长。
+        """
+        storage = self.context.storage
+        if not settings_mod.get_bool(storage, "reminder_enabled"):
+            return
+        popup_on = settings_mod.get_bool(storage, "reminder_popup")
+        sound_on = settings_mod.get_bool(storage, "reminder_sound")
+        if not popup_on and not sound_on:
             return
         messages = {
             PHASE_FOCUS: ("专注结束 🎉",
@@ -261,8 +365,12 @@ class PomodoroView(ttk.Frame):
         if data is None:
             return
         title, message, icon, sound = data
-        show_phase_reminder(self.winfo_toplevel(), title, message, icon,
-                            sound=sound)
+        seconds = settings_mod.get_int(storage, "reminder_seconds")
+        custom = storage.get("custom_alarm_path", "") or None
+        show_phase_reminder(
+            self.winfo_toplevel(), title, message, icon,
+            sound=sound, play_sound=sound_on, show_popup=popup_on,
+            auto_close_ms=max(5, seconds) * 1000, custom_alarm=custom)
 
     # ================================================================ 定时刷新
     def _poll(self):
@@ -287,6 +395,13 @@ class PomodoroView(ttk.Frame):
             except tk.TclError:
                 pass
             self._after_id = None
+        # 注销引擎监听，避免主题切换重建页面后残留回调
+        if getattr(self, "_engine_off", None) is not None:
+            try:
+                self._engine_off()
+            except Exception:
+                pass
+            self._engine_off = None
         super().destroy()
 
     # ================================================================ 界面刷新

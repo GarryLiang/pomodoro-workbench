@@ -9,7 +9,12 @@ DEFAULT_SETTINGS = {
     "long_break_min": "15",   # 长休息时长（分钟）
     "long_break_after": "4",  # 每完成多少个专注后进入长休息
     "auto_start": "1",        # 阶段结束后是否自动开始下一阶段（1/0）
-    "reminder_enabled": "1",  # 阶段结束是否弹出提醒（闹钟+弹窗）（1/0）
+    "reminder_enabled": "1",  # 阶段结束是否提醒（总开关，1/0）
+    "reminder_popup": "1",    # 阶段结束弹窗提醒（1/0）
+    "reminder_sound": "1",    # 阶段结束响铃提醒（1/0）
+    "reminder_seconds": "20",  # 提醒自动停铃秒数（5~120）
+    "custom_alarm_path": "",  # 自定义铃声文件（WAV），为空表示用内置三阶段铃声
+    "theme": "light",         # 界面主题（light / dark / green / sakura）
 }
 
 
@@ -48,6 +53,16 @@ def set_int(storage, key, value):
 def set_bool(storage, key, value):
     """写入布尔设置。"""
     storage.set(key, "1" if value else "0")
+
+
+def get_str(storage, key):
+    """读取字符串设置。"""
+    return _raw(storage, key)
+
+
+def set_str(storage, key, value):
+    """写入字符串设置。"""
+    storage.set(key, value or "")
 
 
 def load_all(storage):
