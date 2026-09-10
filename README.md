@@ -276,3 +276,7 @@ python tests/gui_smoke.py   # GUI 冒烟：主窗口与 4 页构建切换（窗�
 
 - **GarryLiang**（项目发起人 / 核心开发者）— [GitHub](https://github.com/GarryLiang)
 - **shengqksz**（贡献者）— [GitHub](https://github.com/shengqksz)：数据导出与一键备份功能（[PR #1](https://github.com/GarryLiang/pomodoro-workbench/pull/1)）
+- **dongjixuepiao**（贡献者）— [GitHub](https://github.com/dongjixuepiao)：README 文档优化与措辞改进（[PR #13](https://github.com/GarryLiang/pomodoro-workbench/pull/13)）
+
+> 欢迎更多贡献者加入：项目在 GitHub Issues 中维护了 `good first issue` 任务池，
+> 提交流程见 [CONTRIBUTING.md](CONTRIBUTING.md)。
