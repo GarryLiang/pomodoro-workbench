@@ -67,9 +67,9 @@
 - 逾期任务红色提醒，顶部实时显示完成率
 
 ### 4. 🔥 习惯打卡
-- 自由添加/删除习惯，每日一键打卡（可取消）
+- 自由添加/删除习惯，每日一键打卡
 - 自动统计总打卡天数、当前连续天数、最长连续天数、本月完成率
-- **GitHub 风格打卡热力图**（近 15 周）：连续性和自律程度一目了然
+- **GitHub 风格打卡热力图**：连续性和自律程度一目了然
 
 ### 5. 📊 数据统计
 - 今日/累计番茄数与专注分钟数总览
@@ -116,7 +116,7 @@ chmod +x start.sh
 ```
 
 > `start.bat` 会自动跳过 Microsoft Store 的 Python 占位符、自动优先 `py` 启动器、
-> 并兼容 "仅当前用户" 安装的官方 Python —— 普通用户拿回家双击即可使用。
+> 并兼容 "仅当前用户" 安装的官方 Python —— 普通用户拿回家双击即可使用，非常方便！
 
 ---
 
@@ -259,7 +259,6 @@ python tests/gui_smoke.py   # GUI 冒烟：主窗口与 4 页构建切换（窗�
 ---
 
 ## 🙌 贡献者
-
 
 - **GarryLiang**（项目发起人 / 核心开发者）— [GitHub](https://github.com/GarryLiang)
 - **shengqksz**（贡献者）— [GitHub](https://github.com/shengqksz)：数据导出与一键备份功能（[PR #1](https://github.com/GarryLiang/pomodoro-workbench/pull/1)）
