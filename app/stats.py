@@ -52,9 +52,10 @@ class StatsService:
             (PHASE_FOCUS, start.isoformat()),
         )
         buckets = defaultdict(lambda: {"minutes": 0, "count": 0})
+        start_key, end_key = start.isoformat(), end.isoformat()
         for row in rows:
             day = row["started_at"][:10]
-            if day in buckets or start.isoformat() <= day <= end.isoformat():
+            if start_key <= day <= end_key:
                 buckets[day]["minutes"] += int(row["duration_min"] or 0)
                 buckets[day]["count"] += 1
         result = []

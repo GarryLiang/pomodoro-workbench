@@ -41,7 +41,7 @@ class TodoView(ttk.Frame):
         self.columnconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
 
-        editor = make_card(self, padding=16)
+        editor = make_card(self)
         editor.grid(row=0, column=0, sticky="ew", pady=(0, 10))
         editor.columnconfigure(1, weight=1)
         editor.columnconfigure(3, weight=1)
@@ -87,7 +87,7 @@ class TodoView(ttk.Frame):
         self.btn_cancel_edit.state(["disabled"])
 
         # 列表卡
-        table_card = make_card(self, padding=8)
+        table_card = make_card(self)
         table_card.grid(row=1, column=0, sticky="nsew")
         table_card.columnconfigure(0, weight=1)
         table_card.rowconfigure(1, weight=1)

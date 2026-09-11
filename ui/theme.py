@@ -2,8 +2,10 @@
 
 支持运行时切换主题：调用 apply(name) 更新颜色常量，再调用 setup_style(root)
 刷新 ttk 样式；调用方（主窗口）负责重建页面以应用新的 tk 控件配色。
+字体由 init_fonts(root) 按平台自动选择（Windows/macOS/Linux 均可用）。
 """
 
+from tkinter import font as tkfont
 from tkinter import ttk
 
 from app.themes import (  # noqa: F401  对外透出，便于其他模块直接使用
@@ -11,7 +13,15 @@ from app.themes import (  # noqa: F401  对外透出，便于其他模块直接�
     name_for_label, theme_names,
 )
 
-# 字体
+# 各平台常见中文字体，按优先级探测（第一个存在的即被采用）
+FONT_CANDIDATES = (
+    "Microsoft YaHei UI", "Microsoft YaHei",      # Windows
+    "PingFang SC", "Hiragino Sans GB",            # macOS
+    "Noto Sans CJK SC", "Source Han Sans SC",     # Linux
+    "WenQuanYi Micro Hei", "SimHei", "Arial Unicode MS",
+)
+
+# 字体（默认值；init_fonts() 会按实际可用字体重设）
 FONT_FAMILY = "Microsoft YaHei UI"
 FONT_TITLE = (FONT_FAMILY, 14, "bold")
 FONT_SUB = (FONT_FAMILY, 10)
@@ -26,6 +36,34 @@ PAD = 16
 # 当前主题名与全部颜色常量（由 apply() 填充）
 current = DEFAULT_THEME
 globals().update(get_palette(DEFAULT_THEME))
+
+
+def init_fonts(root):
+    """按平台探测可用的中文字体，更新模块级字体常量。
+
+    需在创建任何窗口控件之前调用（主窗口 __init__ 中先调用它再 setup_style）。
+    找不到候选中文字体时回退到 Tk 默认字体，保证任何系统都能正常启动。
+    """
+    global FONT_FAMILY, FONT_TITLE, FONT_SUB, FONT_BODY, FONT_SMALL
+    global FONT_NAV, FONT_TIME, FONT_STAT
+
+    try:
+        available = set(tkfont.families(root))
+        family = next((f for f in FONT_CANDIDATES if f in available), None)
+        if family is None:
+            family = tkfont.nametofont("TkDefaultFont").actual("family")
+    except Exception:
+        family = FONT_FAMILY
+
+    FONT_FAMILY = family
+    FONT_TITLE = (family, 14, "bold")
+    FONT_SUB = (family, 10)
+    FONT_BODY = (family, 10)
+    FONT_SMALL = (family, 9)
+    FONT_NAV = (family, 11)
+    FONT_TIME = (family, 44, "bold")
+    FONT_STAT = (family, 22, "bold")
+    return family
 
 
 def apply(name):
@@ -98,20 +136,3 @@ def setup_style(root):
     root.option_add("*TCombobox*Listbox.font", FONT_BODY)
     root.option_add("*TCombobox*Listbox.background", CARD_BG)
     root.option_add("*TCombobox*Listbox.foreground", TEXT_DARK)
-
-
-def hex_to_rgb(value):
-    """把 #rrggbb 转为 (r, g, b) 元组。"""
-    value = value.lstrip("#")
-    return tuple(int(value[i:i + 2], 16) for i in (0, 2, 4))
-
-
-def mix_alpha(base, overlay, alpha):
-    """把 overlay 颜色按 alpha 混合到 base 上，返回 #rrggbb 字符串。"""
-    br, bg_, bb = hex_to_rgb(base)
-    or_, og, ob = hex_to_rgb(overlay)
-    return "#%02x%02x%02x" % (
-        int(br * (1 - alpha) + or_ * alpha),
-        int(bg_ * (1 - alpha) + og * alpha),
-        int(bb * (1 - alpha) + ob * alpha),
-    )

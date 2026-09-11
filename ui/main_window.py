@@ -1,5 +1,6 @@
 """主窗口：侧边导航 + 页面容器 + 主题切换 + 迷你悬浮窗。"""
 
+import re
 import tkinter as tk
 from tkinter import ttk
 
@@ -14,7 +15,7 @@ from .stats_view import StatsView
 from .reminder import stop_active_alarm
 
 APP_TITLE = "番茄工作台"
-APP_VERSION = "v1.2.0"
+APP_VERSION = "v1.3.0"
 
 NAV_ITEMS = [
     ("pomodoro", "🍅  番茄专注"),
@@ -30,6 +31,14 @@ _PAGE_CLASSES = {
     "stats": StatsView,
 }
 
+# 主窗口 geometry 字符串形如 1040x680+120+60；允许负坐标（副屏在主屏左侧/上方）
+_GEOMETRY_RE = re.compile(r"^\d{3,5}x\d{3,5}[+-]\d{1,5}[+-]\d{1,5}$")
+
+
+def _geometry_ok(value):
+    """校验保存的窗口 geometry 是否合法（避免异常配置导致窗口跑到屏幕外）。"""
+    return bool(value) and bool(_GEOMETRY_RE.match(value.strip()))
+
 
 class MainWindow(tk.Tk):
     """应用主窗口。"""
@@ -44,13 +53,17 @@ class MainWindow(tk.Tk):
         self.float_window = None
         self._float_auto_shown = False
 
+        # 字体按平台自动选择（Windows / macOS / Linux），需在创建控件前完成
+        theme.init_fonts(self)
         # 启动时按保存的设置为准（未知主题自动回退默认）
         saved_theme = context.storage.get("theme", DEFAULT_THEME)
         theme.apply(saved_theme)
         theme.setup_style(self)
 
         self.title("%s %s" % (APP_TITLE, APP_VERSION))
-        self.geometry("1040x680")
+        saved_geometry = context.storage.get("win_geometry", "") or ""
+        self.geometry(saved_geometry if _geometry_ok(saved_geometry)
+                      else "1040x680")
         self.minsize(940, 620)
         self._build_sidebar()
         self._build_body()
@@ -251,6 +264,13 @@ class MainWindow(tk.Tk):
     # ================================================================ 关闭
     def _on_close(self):
         stop_active_alarm()
+        # 记住窗口位置与尺寸，下次启动恢复
+        try:
+            geometry = self.geometry()
+            if _geometry_ok(geometry):
+                self.context.storage.set("win_geometry", geometry)
+        except tk.TclError:
+            pass
         try:
             if self.context.engine.running:
                 self.context.engine.pause()

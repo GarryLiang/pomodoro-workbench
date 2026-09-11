@@ -18,6 +18,9 @@ DEFAULT_SETTINGS = {
     "float_enabled": "0",       # 是否显示迷你悬浮窗（1/0）
     "float_auto_minimize": "1",  # 主窗口最小化时自动显示悬浮窗（1/0）
     "float_pos": "",            # 悬浮窗位置 "x,y"（空表示默认右下角）
+    "float_topmost": "1",       # 悬浮窗是否置顶（1/0，界面上的 📌 可切换）
+    "win_geometry": "",         # 主窗口位置与尺寸 "WxH+X+Y"（空表示默认）
+    "welcome_shown": "0",       # 是否已展示首次使用引导（1/0）
 }
 
 

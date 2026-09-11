@@ -33,7 +33,7 @@ class HabitView(ttk.Frame):
         self.columnconfigure(1, weight=1)
         self.rowconfigure(0, weight=1)
 
-        left = make_card(self, padding=14)
+        left = make_card(self)
         left.grid(row=0, column=0, sticky="ns", padx=(0, 10))
         card_title(left, "我的习惯").pack(fill="x", pady=(0, 4))
         card_muted(left, "每天坚持一点点，看见自己的进步。").pack(
@@ -68,7 +68,7 @@ class HabitView(ttk.Frame):
         self.btn_delete.pack(fill="x", pady=2)
 
         # 右侧详情 + 热力图
-        right = make_card(self, padding=16)
+        right = make_card(self)
         right.grid(row=0, column=1, sticky="nsew")
         right.columnconfigure(0, weight=1)
 

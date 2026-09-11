@@ -8,7 +8,6 @@
 - long_break  长休息结束 → 激昂的 G 大调上行琶音（G5-B5-D6-G6，冲刺号角）
 """
 
-import hashlib
 import math
 import os
 import struct
@@ -145,16 +144,6 @@ def alarm_path_for(kind=DEFAULT_KIND, custom_path=None):
         if candidate.is_file() and candidate.stat().st_size > 100:
             return str(candidate)
     return ensure_alarm_wav(kind)
-
-
-def all_alarm_fingerprints():
-    """生成全部阶段铃声，返回 {kind: md5指纹}，供测试校验铃声互不相同。"""
-    fingerprints = {}
-    for kind in KINDS:
-        path = synthesize_alarm(kind)
-        with open(path, "rb") as fh:
-            fingerprints[kind] = hashlib.md5(fh.read()).hexdigest()
-    return fingerprints
 
 
 if __name__ == "__main__":

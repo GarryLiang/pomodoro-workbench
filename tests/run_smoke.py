@@ -327,6 +327,86 @@ def test_reminder_settings():
             ctx.close()
 
 
+def test_engine_clock():
+    print("[10] 墙钟计时与阶段时长快照")
+    import time as time_mod
+    from app.pomodoro import PomodoroEngine as Engine
+
+    # 运行中修改时长：当前阶段保持原节奏，进度基准不变（修复负进度问题）
+    e = Engine(focus_min=25, short_break_min=5, long_break_min=15,
+               long_break_after=4, auto_start=False)
+    e.start()
+    for _ in range(300):
+        e.tick()
+    check("推进 300 秒后剩余 1200", e.remaining == 1200)
+    e.set_durations(5, 5, 15, 4)
+    check("运行中改设置：剩余时间保持 1200", e.remaining == 1200)
+    check("运行中改设置：进度基准仍为 1500", e.progress_total() == 1500)
+    done = max(0, e.progress_total() - e.remaining)
+    check("进度值不再为负", done == 300)
+    e.reset()
+    check("重置后按新设置装载 300 秒",
+          e.phase_total == 300 and e.remaining == 300)
+
+    # refresh() 按真实时间结算且幂等
+    e2 = Engine(focus_min=1, short_break_min=1, long_break_min=1,
+                long_break_after=4, auto_start=False)
+    e2.start()
+    time_mod.sleep(0.05)
+    e2.refresh()
+    first = e2.remaining
+    check("refresh 后剩余不超过总时长", first <= 60)
+    e2.refresh()
+    check("连续 refresh 幂等（不会重复扣减）", e2.remaining == first)
+    e2.pause()
+    paused = e2.remaining
+    e2.start()
+    check("暂停后继续不丢时间", e2.remaining == paused)
+
+    # tick 仍可用于无界面场景
+    e3 = Engine(focus_min=1, short_break_min=1, long_break_min=1,
+                long_break_after=4, auto_start=False)
+    e3.start()
+    for _ in range(60):
+        e3.tick()
+    check("tick 驱动仍能完成阶段", e3.phase == "short_break")
+
+
+def test_storage_migration():
+    print("[11] 数据库结构版本")
+    from app.storage import (BASE_SCHEMA_VERSION, SCHEMA_VERSION,
+                             SCHEMA_VERSION_KEY)
+    with tempfile.TemporaryDirectory() as tmp:
+        db = os.path.join(tmp, "v.db")
+        st = Storage(db)
+        check("初始化写入结构版本",
+              st.get(SCHEMA_VERSION_KEY) == str(SCHEMA_VERSION))
+        check("Storage 暴露版本号", st.schema_version == SCHEMA_VERSION)
+        # 模拟老数据库（没有版本记录）
+        st.execute("DELETE FROM settings WHERE key = ?", (SCHEMA_VERSION_KEY,))
+        st.close()
+        st2 = Storage(db)
+        check("老数据库重新打开后补写版本",
+              st2.get(SCHEMA_VERSION_KEY) == str(BASE_SCHEMA_VERSION))
+        st2.close()
+
+
+def test_new_settings_defaults():
+    print("[12] 新增设置项默认值")
+    with tempfile.TemporaryDirectory() as tmp:
+        ctx = AppContext(os.path.join(tmp, "t.db"))
+        try:
+            st = ctx.storage
+            check("悬浮窗置顶默认开启",
+                  settings_mod.get_bool(st, "float_topmost") is True)
+            check("窗口 geometry 默认为空",
+                  settings_mod.get_str(st, "win_geometry") == "")
+            check("首次引导默认未展示",
+                  settings_mod.get_bool(st, "welcome_shown") is False)
+        finally:
+            ctx.close()
+
+
 if __name__ == "__main__":
     test_storage_and_settings()
     test_todo()
@@ -337,4 +417,7 @@ if __name__ == "__main__":
     test_export()
     test_themes()
     test_reminder_settings()
+    test_engine_clock()
+    test_storage_migration()
+    test_new_settings_defaults()
     print("\n全部 %d 项检查通过 ✔" % PASS)

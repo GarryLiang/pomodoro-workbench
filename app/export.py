@@ -58,7 +58,7 @@ def habits_to_csv(habits, today=None):
     return _write_csv(HABIT_HEADERS, rows)
 
 
-def sessions_to_csv(rows, kind_label=None):
+def sessions_to_csv(rows):
     """专注/休息记录行（sqlite3.Row）-> CSV 文本。"""
     out = []
     for r in rows:
@@ -88,8 +88,7 @@ def query_sessions(storage, kind=None):
 
 def export_focus_csv(storage):
     """专注记录（仅 focus）-> CSV 文本。"""
-    return sessions_to_csv(query_sessions(storage, kind=PHASE_FOCUS),
-                           kind_label=PHASE_FOCUS)
+    return sessions_to_csv(query_sessions(storage, kind=PHASE_FOCUS))
 
 
 def export_all_sessions_csv(storage):

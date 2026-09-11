@@ -12,11 +12,22 @@ import tkinter as tk
 from tkinter import ttk
 
 from app import settings as settings_mod
+from app.logger import log_exception
 from app.pomodoro import PHASE_FOCUS, PHASE_SHORT, PHASE_LONG, PHASE_LABELS
 from . import theme
 
 FLOAT_WIDTH = 240
 MARGIN = 24
+# 坐标合理范围：多显示器下可能是负值，但不应离谱到离谱的越界值
+_POS_LIMIT = 20000
+
+
+def _position_in_sane_range(x, y, w=0, h=0):
+    """校验悬浮窗坐标是否合理（允许副屏负坐标，拒绝越界值）。"""
+    if not (-_POS_LIMIT <= x <= _POS_LIMIT and -_POS_LIMIT <= y <= _POS_LIMIT):
+        return False
+    # 至少有一部分要落在某个屏幕可能存在的范围内
+    return x + w > -_POS_LIMIT and y + h > -_POS_LIMIT
 
 
 class FloatWindow(tk.Toplevel):
@@ -30,8 +41,9 @@ class FloatWindow(tk.Toplevel):
         self._after_id = None
         self._drag_offset = (0, 0)
         self._dragged = False
+        self._topmost = settings_mod.get_bool(context.storage, "float_topmost")
         self.overrideredirect(True)
-        self.attributes("-topmost", True)
+        self.attributes("-topmost", self._topmost)
         self.resizable(False, False)
         self.configure(bg=theme.CARD_BG)
         self._build()
@@ -52,6 +64,13 @@ class FloatWindow(tk.Toplevel):
         self.phase_label = tk.Label(head, text="就绪", bg=theme.CARD_BG,
                                     fg=theme.TEXT_MUTED, font=theme.FONT_SMALL)
         self.phase_label.pack(side="left", padx=(5, 0))
+
+        pin_btn = tk.Label(head, text="📌", bg=theme.CARD_BG,
+                           fg=theme.ACCENT if self._topmost else theme.TEXT_MUTED,
+                           cursor="hand2", font=(theme.FONT_FAMILY, 10))
+        pin_btn.pack(side="right", padx=(0, 8))
+        pin_btn.bind("<Button-1>", lambda _e: self.toggle_topmost())
+        self.pin_label = pin_btn
 
         close_btn = tk.Label(head, text="×", bg=theme.CARD_BG,
                              fg=theme.TEXT_MUTED, cursor="hand2",
@@ -114,7 +133,9 @@ class FloatWindow(tk.Toplevel):
         self._dragged = True
         x = event.x_root - self._drag_offset[0]
         y = event.y_root - self._drag_offset[1]
-        self.geometry("+%d+%d" % (max(0, x), max(0, y)))
+        # 允许多显示器下的负坐标（主屏左侧/上方的副屏），仅做合理范围校验
+        if _position_in_sane_range(x, y):
+            self.geometry("+%d+%d" % (x, y))
 
     def _end_drag(self, _event=None):
         if self._dragged:
@@ -129,8 +150,9 @@ class FloatWindow(tk.Toplevel):
         if "," in saved:
             try:
                 x, y = (int(v) for v in saved.split(",", 1))
-                self.geometry("%dx%d+%d+%d" % (w, h, max(0, x), max(0, y)))
-                return
+                if _position_in_sane_range(x, y, w, h):
+                    self.geometry("%dx%d+%d+%d" % (w, h, x, y))
+                    return
             except ValueError:
                 pass
         screen_w = self.winfo_screenwidth()
@@ -144,9 +166,9 @@ class FloatWindow(tk.Toplevel):
 
     # ================================================================ 显隐
     def show(self):
-        """显示悬浮窗（置顶）并记录开关状态。"""
+        """显示悬浮窗并记录开关状态。"""
         self.deiconify()
-        self.attributes("-topmost", True)
+        self.attributes("-topmost", self._topmost)
         self.lift()
         self._refresh()
         settings_mod.set_bool(self.context.storage, "float_enabled", True)
@@ -156,6 +178,15 @@ class FloatWindow(tk.Toplevel):
         self._save_position()
         self.withdraw()
         settings_mod.set_bool(self.context.storage, "float_enabled", False)
+
+    def toggle_topmost(self):
+        """切换置顶状态（📌）：关掉后悬浮窗可被其他窗口遮挡。"""
+        self._topmost = not self._topmost
+        self.attributes("-topmost", self._topmost)
+        settings_mod.set_bool(self.context.storage, "float_topmost", self._topmost)
+        if hasattr(self, "pin_label"):
+            self.pin_label.config(fg=theme.ACCENT if self._topmost
+                                  else theme.TEXT_MUTED)
 
     def is_visible(self):
         try:
@@ -186,10 +217,14 @@ class FloatWindow(tk.Toplevel):
                 return
         except tk.TclError:
             return
-        try:
-            self._refresh()
-        except Exception:
-            pass
+        # 隐藏状态下不必刷新界面（仍保留定时器，显示时立即恢复）
+        if self.is_visible():
+            try:
+                self._refresh()
+            except tk.TclError:
+                pass
+            except Exception:
+                log_exception("悬浮窗刷新失败")
         self._after_id = self.after(500, self._poll)
 
     def _refresh(self):
@@ -210,8 +245,9 @@ class FloatWindow(tk.Toplevel):
         self.phase_dot.config(text=icon)
         self.phase_label.config(text=PHASE_LABELS[phase], fg=color)
         self.time_label.config(text=engine.format_remaining(), fg=color)
-        total = engine.duration_for(phase)
-        self.progress.config(maximum=total, value=total - engine.remaining)
+        total = engine.progress_total()
+        done = max(0, min(total, total - engine.remaining))
+        self.progress.config(maximum=max(1, total), value=done)
         self.btn_toggle.config(text="暂停" if engine.running else "继续")
 
     # ================================================================ 主题

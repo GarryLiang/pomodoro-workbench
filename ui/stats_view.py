@@ -28,7 +28,7 @@ class StatsView(ttk.Frame):
         self.rowconfigure(1, weight=1)
 
         # ---- 指标卡
-        top = make_card(self, padding=18)
+        top = make_card(self)
         top.grid(row=0, column=0, sticky="ew", pady=(0, 10))
 
         card_title(top, "数据总览").grid(row=0, column=0, columnspan=4,
@@ -90,7 +90,7 @@ class StatsView(ttk.Frame):
             btn.pack(side="left", padx=(0, 8))
 
         # ---- 趋势图卡
-        chart_card = make_card(self, padding=18)
+        chart_card = make_card(self)
         chart_card.grid(row=1, column=0, sticky="nsew")
         chart_card.columnconfigure(0, weight=1)
         chart_card.rowconfigure(1, weight=1)

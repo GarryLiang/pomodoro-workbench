@@ -56,6 +56,14 @@ CREATE TABLE IF NOT EXISTS habit_logs (
 );
 """
 
+# 数据库结构版本：新增表/字段时 +1，并在 MIGRATIONS 中登记迁移函数
+BASE_SCHEMA_VERSION = 1
+SCHEMA_VERSION = 1
+SCHEMA_VERSION_KEY = "schema_version"
+
+# {目标版本: 迁移函数(conn)}；例如 {2: _migrate_to_v2}
+MIGRATIONS = {}
+
 
 class Storage:
     """SQLite 数据库的轻量封装，提供 execute / query / get / set 等基本方法。"""
@@ -67,6 +75,41 @@ class Storage:
         self.conn.row_factory = sqlite3.Row
         self.conn.executescript(_SCHEMA)
         self.conn.commit()
+        self.schema_version = self._apply_migrations()
+
+    # ------------------------------------------------------------- 版本迁移
+    def _stored_schema_version(self):
+        row = self.query_one(
+            "SELECT value FROM settings WHERE key = ?", (SCHEMA_VERSION_KEY,))
+        if row is None:
+            # 老数据库没有版本记录：视为版本 1，并补写
+            self.set(SCHEMA_VERSION_KEY, str(BASE_SCHEMA_VERSION))
+            return BASE_SCHEMA_VERSION
+        try:
+            return int(row["value"])
+        except (TypeError, ValueError):
+            self.set(SCHEMA_VERSION_KEY, str(BASE_SCHEMA_VERSION))
+            return BASE_SCHEMA_VERSION
+
+    def _apply_migrations(self):
+        """按版本号依次执行迁移脚本；返回最终版本号。
+
+        目前只有版本 1（初始结构），但预先留好升级通道：
+        以后新增表/字段时，只需把它写进 MIGRATIONS 并提升 SCHEMA_VERSION。
+        """
+        version = self._stored_schema_version()
+        while version < SCHEMA_VERSION:
+            migration = MIGRATIONS.get(version + 1)
+            if migration is None:
+                version += 1
+                continue
+            migration(self.conn)
+            self.conn.commit()
+            version += 1
+            self.set(SCHEMA_VERSION_KEY, str(version))
+        if self.get(SCHEMA_VERSION_KEY) != str(version):
+            self.set(SCHEMA_VERSION_KEY, str(version))
+        return version
 
     def execute(self, sql, params=()):
         """执行写入类 SQL，返回自增主键 id（无自增时返回 0）。"""

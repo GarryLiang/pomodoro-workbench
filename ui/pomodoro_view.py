@@ -14,6 +14,7 @@ from . import theme
 from .reminder import (custom_alarm_available, play_preview,
                        show_phase_reminder, stop_active_alarm)
 from .widgets import make_card, card_title, card_muted
+from app.logger import log_exception
 
 NONE_TASK = "（不关联待办）"
 
@@ -39,14 +40,47 @@ class PomodoroView(ttk.Frame):
         self._engine_off = self.engine.on(self._on_engine_event)
         self._poll()
 
+    # ================================================================ 首次使用引导
+    def _build_welcome(self):
+        """首次运行显示一条使用引导，点击「知道了」后不再出现。返回内容起始行号。"""
+        if settings_mod.get_bool(self.context.storage, "welcome_shown"):
+            return 0
+        banner = tk.Frame(self, bg=theme.TILE_BG,
+                          highlightbackground=theme.TILE_BORDER,
+                          highlightthickness=1)
+        banner.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
+        tk.Label(
+            banner,
+            text="👋 欢迎使用番茄工作台！三步上手：① 到「待办清单」添加一条任务　"
+                 "② 回本页选择任务后点「开始专注」　③ 侧边栏可开启「迷你悬浮窗」",
+            bg=theme.TILE_BG, fg=theme.TEXT_DARK, font=theme.FONT_SMALL,
+            justify="left", wraplength=720).pack(side="left", padx=12, pady=8)
+        tk.Button(banner, text="知道了", relief="flat", bd=0, cursor="hand2",
+                  bg=theme.ACCENT, fg="#ffffff",
+                  activebackground=theme.ACCENT_DARK,
+                  activeforeground="#ffffff",
+                  font=(theme.FONT_FAMILY, 9, "bold"), padx=10, pady=3,
+                  command=lambda: self._dismiss_welcome(banner)).pack(
+            side="right", padx=10, pady=6)
+        return 1
+
+    def _dismiss_welcome(self, banner):
+        settings_mod.set_bool(self.context.storage, "welcome_shown", True)
+        try:
+            banner.destroy()
+        except tk.TclError:
+            pass
+
     # ================================================================ 构建界面
     def _build(self):
         self.configure(style="TFrame")
         self.columnconfigure(0, weight=1)
-        self.rowconfigure(0, weight=1)
+        self.rowconfigure(1, weight=1)
 
-        left = make_card(self, padding=24)
-        left.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+        row_offset = self._build_welcome()   # 首次使用时展示引导条
+
+        left = make_card(self)
+        left.grid(row=row_offset, column=0, sticky="nsew", padx=(0, 10))
         left.columnconfigure(0, weight=1)
         left.rowconfigure(1, weight=1)
 
@@ -108,8 +142,8 @@ class PomodoroView(ttk.Frame):
         self.today_label.grid(row=3, column=0, sticky="w", pady=(0, 4))
 
         # 右侧设置卡
-        right = make_card(self, padding=16)
-        right.grid(row=0, column=1, sticky="ns")
+        right = make_card(self)
+        right.grid(row=row_offset, column=1, sticky="ns")
         right.columnconfigure(0, weight=1)
 
         card_title(right, "时长设置").pack(fill="x", pady=(0, 6))
@@ -279,7 +313,12 @@ class PomodoroView(ttk.Frame):
         settings_mod.set_bool(storage, "reminder_enabled", popup or sound)
         storage.set("custom_alarm_path", self.var_custom.get().strip())
         self._load_settings()
-        self.settings_hint.config(text="设置已保存并生效", fg=theme.GREEN)
+        if self.engine.phase is not None and self.engine.remaining > 0:
+            self.settings_hint.config(
+                text="设置已保存；当前阶段仍按原时长进行，新时长将在下一阶段生效",
+                fg=theme.YELLOW)
+        else:
+            self.settings_hint.config(text="设置已保存并生效", fg=theme.GREEN)
         self._refresh_ui()
 
     # ================================================================ 任务关联
@@ -374,19 +413,20 @@ class PomodoroView(ttk.Frame):
 
     # ================================================================ 定时刷新
     def _poll(self):
-        """每秒推进一次引擎并刷新界面。"""
+        """按真实时间刷新引擎与界面（每 250ms 一次，不会因界面卡顿而漂移）。"""
         try:
             if not self.winfo_exists():
                 return
         except tk.TclError:
             return
         try:
-            if self.engine.running and self.engine.phase is not None:
-                self.engine.tick()
+            self.engine.refresh()
             self._refresh_ui()
+        except tk.TclError:
+            pass                     # 窗口销毁竞态，属预期情况
         except Exception:
-            pass
-        self._after_id = self.after(1000, self._poll)
+            log_exception("专注页刷新失败")
+        self._after_id = self.after(250, self._poll)
 
     def destroy(self):
         if self._after_id is not None:
@@ -423,9 +463,10 @@ class PomodoroView(ttk.Frame):
                      PHASE_LONG: theme.BLUE}[phase]
             self.phase_label.config(text=PHASE_LABELS[phase], fg=color)
             self.time_label.config(text=engine.format_remaining(), fg=color)
-            total = engine.duration_for(phase)
-            done = total - engine.remaining
-            self.progress.config(maximum=total, value=done)
+            # 进度基准取「进入阶段时的快照」，避免运行中改设置导致进度为负
+            total = engine.progress_total()
+            done = max(0, min(total, total - engine.remaining))
+            self.progress.config(maximum=max(1, total), value=done)
             self.btn_reset.state(["!disabled"])
             self.btn_skip.state(["!disabled"])
             if engine.running:
