@@ -159,10 +159,14 @@ def test_engine():
     check("tick 推进", e.remaining == 59)
     e.pause()
     check("暂停生效", e.running is False)
+    # 暂停时会按真实经过时间结算，因此这里以「暂停后的快照」为基准，
+    # 避免在负载高的机器上因不足 1 秒的真实耗时导致断言不稳定
+    paused_remaining = e.remaining
+    check("暂停后剩余时间不增加", paused_remaining <= 59)
     e.tick()
-    check("暂停时不推进", e.remaining == 59)
+    check("暂停时不推进", e.remaining == paused_remaining)
     e.start()
-    for _ in range(59):
+    while e.phase == PHASE_FOCUS and e.running:
         e.tick()
     check("专注完成进入短休息", e.phase == PHASE_SHORT)
     check("自动关闭时不运行", e.running is False)
@@ -357,7 +361,10 @@ def test_engine_clock():
     first = e2.remaining
     check("refresh 后剩余不超过总时长", first <= 60)
     e2.refresh()
-    check("连续 refresh 幂等（不会重复扣减）", e2.remaining == first)
+    # refresh 依据真实时间计算，两次调用之间可能恰好跨过 1 秒，允许最多 1 秒差异；
+    # 关键在于不会像 tick 那样「每次调用都扣 1 秒」
+    check("连续 refresh 不重复扣减（≤1 秒真实流逝）",
+          first - e2.remaining <= 1)
     e2.pause()
     paused = e2.remaining
     e2.start()
