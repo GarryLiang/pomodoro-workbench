@@ -43,6 +43,9 @@ EV_PHASE_COMPLETE = "phase_complete"  # 当前阶段自然结束
 EV_PHASE_SKIPPED = "phase_skipped"    # 用户跳过当前阶段
 EV_RESET = "reset"                # 重置当前阶段计时
 
+# 时钟取整误差容限（秒）：避免浮点舍入让剩余时间多出 1 秒
+CLOCK_EPSILON = 1e-6
+
 
 class PomodoroEngine:
     """番茄钟状态机。"""
@@ -217,10 +220,16 @@ class PomodoroEngine:
 
     # ------------------------------------------------------------- 内部实现
     def _remaining_from_clock(self):
-        """按单调时钟计算剩余秒数（向上取整，避免显示提前跳秒）。"""
+        """按单调时钟计算剩余秒数（向上取整，避免显示提前跳秒）。
+
+        注意：必须减去一个极小量再取整。因为 deadline = t1 + N，
+        而 t2 与 t1 可能只差浮点舍入误差，直接 ceil((t1+N)-t1) 有概率得到
+        N+1（例如 59.000000000000007 → 60），会让"刚扣减 1 秒"又变回原值。
+        """
         if self._deadline is None:
             return max(0, int(self.remaining))
-        return max(0, int(math.ceil(self._deadline - time.monotonic())))
+        left = self._deadline - time.monotonic() - CLOCK_EPSILON
+        return max(0, int(math.ceil(left)))
 
     def _pick_break(self, skip=False):
         """决定接下来进入短休息还是长休息。

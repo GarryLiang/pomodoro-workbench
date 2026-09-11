@@ -378,6 +378,19 @@ def test_engine_clock():
         e3.tick()
     check("tick 驱动仍能完成阶段", e3.phase == "short_break")
 
+    # 回归：单调时钟的浮点取整不应把「刚扣减的 1 秒」又加回去
+    # （ceil((t+N) - t) 在某些平台上会得到 N+1，CI 上曾偶发失败）
+    rollback = 0
+    for _ in range(300):
+        e4 = Engine(focus_min=1, short_break_min=1, long_break_min=1,
+                    long_break_after=4, auto_start=False)
+        e4.start()
+        e4.tick()
+        e4.pause()
+        if e4.remaining > 59:
+            rollback += 1
+    check("300 次 tick+pause 无取整回退", rollback == 0)
+
 
 def test_storage_migration():
     print("[11] 数据库结构版本")
