@@ -15,7 +15,7 @@ from .stats_view import StatsView
 from .reminder import stop_active_alarm
 
 APP_TITLE = "番茄工作台"
-APP_VERSION = "v1.3.0"
+APP_VERSION = "v1.3.1"
 
 NAV_ITEMS = [
     ("pomodoro", "🍅  番茄专注"),
