@@ -1,61 +1,104 @@
 [
   {
-    "file": "01-番茄钟-状态控制.png",
+    "file": "01-番茄钟-开始专注.png",
     "path": "app/pomodoro.py",
     "symbols": [
-      "PomodoroEngine.start",
+      "PomodoroEngine.start"
+    ],
+    "start": 127,
+    "end": 142,
+    "code_lines": 16,
+    "effective_lines": 15,
+    "desc": "番茄钟状态机：开始 / 继续计时"
+  },
+  {
+    "file": "02-番茄钟-暂停重置.png",
+    "path": "app/pomodoro.py",
+    "symbols": [
       "PomodoroEngine.pause",
       "PomodoroEngine.reset"
     ],
-    "start": 127,
+    "start": 144,
     "end": 168,
-    "code_lines": 42,
-    "effective_lines": 38,
-    "desc": "番茄钟状态机：开始 / 暂停 / 重置"
+    "code_lines": 25,
+    "effective_lines": 23,
+    "desc": "番茄钟状态机：暂停 / 开始暂停切换 / 重置"
   },
   {
-    "file": "02-番茄钟-墙钟计时核心.png",
+    "file": "03-番茄钟-手动推进.png",
     "path": "app/pomodoro.py",
     "symbols": [
-      "PomodoroEngine.tick",
-      "PomodoroEngine.refresh",
-      "PomodoroEngine._remaining_from_clock"
+      "PomodoroEngine.tick"
     ],
     "start": 184,
-    "end": 232,
-    "code_lines": 49,
-    "effective_lines": 43,
-    "desc": "按单调时钟结算的计时核心（修复界面卡顿导致的计时漂移）"
+    "end": 199,
+    "code_lines": 16,
+    "effective_lines": 15,
+    "desc": "手动推进 1 秒（无界面场景与第三方程序可用）"
   },
   {
-    "file": "03-三阶段铃声合成.png",
+    "file": "04-番茄钟-墙钟刷新.png",
+    "path": "app/pomodoro.py",
+    "symbols": [
+      "PomodoroEngine.refresh"
+    ],
+    "start": 201,
+    "end": 219,
+    "code_lines": 19,
+    "effective_lines": 18,
+    "desc": "按真实时间刷新剩余时间（幂等，界面卡顿不影响计时）"
+  },
+  {
+    "file": "05-番茄钟-时钟取整.png",
+    "path": "app/pomodoro.py",
+    "symbols": [
+      "PomodoroEngine._remaining_from_clock"
+    ],
+    "start": 222,
+    "end": 232,
+    "code_lines": 11,
+    "effective_lines": 10,
+    "desc": "单调时钟剩余秒数计算与浮点取整容限"
+  },
+  {
+    "file": "06-铃声-波形与包络.png",
     "path": "app/alarm.py",
     "symbols": [
-      "_render_note",
+      "_envelope",
+      "_render_note"
+    ],
+    "start": 79,
+    "end": 100,
+    "code_lines": 22,
+    "effective_lines": 20,
+    "desc": "标准库合成铃声：包络（防爆音）与正弦波形生成"
+  },
+  {
+    "file": "07-铃声-WAV写出.png",
+    "path": "app/alarm.py",
+    "symbols": [
       "synthesize_alarm"
     ],
-    "start": 89,
+    "start": 103,
     "end": 123,
-    "code_lines": 35,
-    "effective_lines": 30,
-    "desc": "用标准库合成三阶段专属 WAV 铃声"
+    "code_lines": 21,
+    "effective_lines": 18,
+    "desc": "按阶段旋律写出循环 WAV 文件"
   },
   {
-    "file": "04-提醒-铃声控制.png",
+    "file": "08-提醒-播放铃声.png",
     "path": "ui/reminder.py",
     "symbols": [
-      "_stop_sound",
-      "_play_wav",
-      "_schedule_auto_stop"
+      "_play_wav"
     ],
-    "start": 25,
-    "end": 88,
-    "code_lines": 64,
-    "effective_lines": 56,
-    "desc": "阶段结束铃声：循环播放、定时停铃与跨平台回退"
+    "start": 64,
+    "end": 76,
+    "code_lines": 13,
+    "effective_lines": 13,
+    "desc": "Windows 异步循环播放铃声（跨平台回退）"
   },
   {
-    "file": "05-提醒-弹出提醒.png",
+    "file": "09-提醒-提醒入口.png",
     "path": "ui/reminder.py",
     "symbols": [
       "show_phase_reminder"
@@ -64,63 +107,72 @@
     "end": 130,
     "code_lines": 24,
     "effective_lines": 21,
-    "desc": "阶段结束提醒入口：按设置决定弹窗与响铃"
+    "desc": "阶段结束提醒入口：按设置决定弹窗 / 响铃"
   },
   {
-    "file": "06-迷你悬浮窗.png",
+    "file": "10-悬浮窗-位置记忆.png",
     "path": "ui/float_window.py",
     "symbols": [
-      "FloatWindow._restore_position",
-      "FloatWindow._save_position",
+      "FloatWindow._restore_position"
+    ],
+    "start": 145,
+    "end": 161,
+    "code_lines": 17,
+    "effective_lines": 17,
+    "desc": "悬浮窗位置恢复：多显示器坐标校验与默认位置"
+  },
+  {
+    "file": "11-悬浮窗-显隐与置顶.png",
+    "path": "ui/float_window.py",
+    "symbols": [
       "FloatWindow.show",
       "FloatWindow.hide",
       "FloatWindow.toggle_topmost"
     ],
-    "start": 145,
+    "start": 168,
     "end": 189,
-    "code_lines": 45,
-    "effective_lines": 40,
-    "desc": "迷你悬浮窗：置顶开关、显隐与位置记忆"
+    "code_lines": 22,
+    "effective_lines": 20,
+    "desc": "悬浮窗显示、隐藏与 📌 置顶开关"
   },
   {
-    "file": "07-习惯热力图自绘.png",
+    "file": "12-习惯热力图-绘制.png",
     "path": "ui/habit_view.py",
     "symbols": [
-      "HabitView._draw_heatmap"
+      "HabitView._draw_heatmap 绘制部分"
     ],
-    "start": 245,
-    "end": 300,
-    "code_lines": 56,
-    "effective_lines": 48,
-    "desc": "Canvas 自绘 15 周打卡热力图"
+    "start": 269,
+    "end": 292,
+    "code_lines": 24,
+    "effective_lines": 23,
+    "desc": "Canvas 自绘热力图：颜色分级、今日高亮"
   },
   {
-    "file": "08-统计趋势图自绘.png",
+    "file": "13-统计趋势图-柱条.png",
     "path": "ui/stats_view.py",
     "symbols": [
-      "StatsView._draw_chart"
+      "StatsView._draw_chart 柱条部分"
     ],
-    "start": 207,
-    "end": 255,
-    "code_lines": 49,
-    "effective_lines": 44,
-    "desc": "Canvas 自绘近 7 天专注趋势柱状图"
+    "start": 229,
+    "end": 250,
+    "code_lines": 22,
+    "effective_lines": 21,
+    "desc": "Canvas 自绘趋势图：柱条、数值与日期标签"
   },
   {
-    "file": "09-数据库结构版本与迁移.png",
+    "file": "14-数据库-结构迁移.png",
     "path": "app/storage.py",
     "symbols": [
-      "Storage._stored_schema_version",
       "Storage._apply_migrations"
     ],
-    "start": 81,
+    "start": 94,
     "end": 112,
-    "code_lines": 32,
-    "effective_lines": 29,
-    "desc": "SQLite 结构版本与迁移通道"
+    "code_lines": 19,
+    "effective_lines": 18,
+    "desc": "SQLite 结构版本迁移通道"
   },
   {
-    "file": "10-跨平台字体自适应.png",
+    "file": "15-跨平台字体.png",
     "path": "ui/theme.py",
     "symbols": [
       "init_fonts"
@@ -129,6 +181,6 @@
     "end": 66,
     "code_lines": 26,
     "effective_lines": 23,
-    "desc": "按平台探测可用中文字体"
+    "desc": "按平台探测可用中文字体并回退"
   }
 ]

@@ -2,15 +2,20 @@
 
 | 截图 | 文件 | 函数/方法 | 行号区间 | 有效行数 | 说明 |
 |---|---|---|---|---|---|
-| 01-番茄钟-状态控制.png | `app/pomodoro.py` | PomodoroEngine.start / PomodoroEngine.pause / PomodoroEngine.reset | 127-168 | 38 | 番茄钟状态机：开始 / 暂停 / 重置 |
-| 02-番茄钟-墙钟计时核心.png | `app/pomodoro.py` | PomodoroEngine.tick / PomodoroEngine.refresh / PomodoroEngine._remaining_from_clock | 184-232 | 43 | 按单调时钟结算的计时核心（修复界面卡顿导致的计时漂移） |
-| 03-三阶段铃声合成.png | `app/alarm.py` | _render_note / synthesize_alarm | 89-123 | 30 | 用标准库合成三阶段专属 WAV 铃声 |
-| 04-提醒-铃声控制.png | `ui/reminder.py` | _stop_sound / _play_wav / _schedule_auto_stop | 25-88 | 56 | 阶段结束铃声：循环播放、定时停铃与跨平台回退 |
-| 05-提醒-弹出提醒.png | `ui/reminder.py` | show_phase_reminder | 107-130 | 21 | 阶段结束提醒入口：按设置决定弹窗与响铃 |
-| 06-迷你悬浮窗.png | `ui/float_window.py` | FloatWindow._restore_position / FloatWindow._save_position / FloatWindow.show / FloatWindow.hide / FloatWindow.toggle_topmost | 145-189 | 40 | 迷你悬浮窗：置顶开关、显隐与位置记忆 |
-| 07-习惯热力图自绘.png | `ui/habit_view.py` | HabitView._draw_heatmap | 245-300 | 48 | Canvas 自绘 15 周打卡热力图 |
-| 08-统计趋势图自绘.png | `ui/stats_view.py` | StatsView._draw_chart | 207-255 | 44 | Canvas 自绘近 7 天专注趋势柱状图 |
-| 09-数据库结构版本与迁移.png | `app/storage.py` | Storage._stored_schema_version / Storage._apply_migrations | 81-112 | 29 | SQLite 结构版本与迁移通道 |
-| 10-跨平台字体自适应.png | `ui/theme.py` | init_fonts | 41-66 | 23 | 按平台探测可用中文字体 |
+| 01-番茄钟-开始专注.png | `app/pomodoro.py` | PomodoroEngine.start | 127-142 | 15 | 番茄钟状态机：开始 / 继续计时 |
+| 02-番茄钟-暂停重置.png | `app/pomodoro.py` | PomodoroEngine.pause / PomodoroEngine.reset | 144-168 | 23 | 番茄钟状态机：暂停 / 开始暂停切换 / 重置 |
+| 03-番茄钟-手动推进.png | `app/pomodoro.py` | PomodoroEngine.tick | 184-199 | 15 | 手动推进 1 秒（无界面场景与第三方程序可用） |
+| 04-番茄钟-墙钟刷新.png | `app/pomodoro.py` | PomodoroEngine.refresh | 201-219 | 18 | 按真实时间刷新剩余时间（幂等，界面卡顿不影响计时） |
+| 05-番茄钟-时钟取整.png | `app/pomodoro.py` | PomodoroEngine._remaining_from_clock | 222-232 | 10 | 单调时钟剩余秒数计算与浮点取整容限 |
+| 06-铃声-波形与包络.png | `app/alarm.py` | _envelope / _render_note | 79-100 | 20 | 标准库合成铃声：包络（防爆音）与正弦波形生成 |
+| 07-铃声-WAV写出.png | `app/alarm.py` | synthesize_alarm | 103-123 | 18 | 按阶段旋律写出循环 WAV 文件 |
+| 08-提醒-播放铃声.png | `ui/reminder.py` | _play_wav | 64-76 | 13 | Windows 异步循环播放铃声（跨平台回退） |
+| 09-提醒-提醒入口.png | `ui/reminder.py` | show_phase_reminder | 107-130 | 21 | 阶段结束提醒入口：按设置决定弹窗 / 响铃 |
+| 10-悬浮窗-位置记忆.png | `ui/float_window.py` | FloatWindow._restore_position | 145-161 | 17 | 悬浮窗位置恢复：多显示器坐标校验与默认位置 |
+| 11-悬浮窗-显隐与置顶.png | `ui/float_window.py` | FloatWindow.show / FloatWindow.hide / FloatWindow.toggle_topmost | 168-189 | 20 | 悬浮窗显示、隐藏与 📌 置顶开关 |
+| 12-习惯热力图-绘制.png | `ui/habit_view.py` | HabitView._draw_heatmap 绘制部分 | 269-292 | 23 | Canvas 自绘热力图：颜色分级、今日高亮 |
+| 13-统计趋势图-柱条.png | `ui/stats_view.py` | StatsView._draw_chart 柱条部分 | 229-250 | 21 | Canvas 自绘趋势图：柱条、数值与日期标签 |
+| 14-数据库-结构迁移.png | `app/storage.py` | Storage._apply_migrations | 94-112 | 18 | SQLite 结构版本迁移通道 |
+| 15-跨平台字体.png | `ui/theme.py` | init_fonts | 41-66 | 23 | 按平台探测可用中文字体并回退 |
 
-共 10 张截图，覆盖有效代码 372 行（不含注释与空行）。
+共 15 张截图，覆盖有效代码 275 行（不含注释与空行）。

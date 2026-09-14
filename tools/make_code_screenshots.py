@@ -36,11 +36,11 @@ FONT_CN_CANDIDATES = (
     "/System/Library/Fonts/PingFang.ttc",
 )
 
-CODE_SIZE = 16
+CODE_SIZE = 18
 GUTTER_PAD = 14
-LINE_PAD = 4
-TITLE_H = 52
-FOOTER_H = 30
+LINE_PAD = 6
+TITLE_H = 56
+FOOTER_H = 32
 
 BG = "#ffffff"
 CODE_BG = "#fbfcfe"
@@ -56,34 +56,40 @@ COLOR_NUMBER = "#098658"
 COLOR_DEF = "#795e26"
 COLOR_DECORATOR = "#af00db"
 
-# 需要截图的代码片段：(输出文件名, 说明, 文件, [符号...])
+# 需要截图的代码片段：(输出文件名, 说明, 文件, [符号...], 显式行区间或 None)
+# 显式区间用于把较长的方法拆成两张（每张控制在十几~二十几行，便于阅读与排版）
 SPECS = [
-    ("01-番茄钟-状态控制.png", "番茄钟状态机：开始 / 暂停 / 重置",
-     "app/pomodoro.py",
-     ["PomodoroEngine.start", "PomodoroEngine.pause", "PomodoroEngine.reset"]),
-    ("02-番茄钟-墙钟计时核心.png", "按单调时钟结算的计时核心（修复界面卡顿导致的计时漂移）",
-     "app/pomodoro.py",
-     ["PomodoroEngine.tick", "PomodoroEngine.refresh",
-      "PomodoroEngine._remaining_from_clock"]),
-    ("03-三阶段铃声合成.png", "用标准库合成三阶段专属 WAV 铃声",
-     "app/alarm.py", ["_render_note", "synthesize_alarm"]),
-    ("04-提醒-铃声控制.png", "阶段结束铃声：循环播放、定时停铃与跨平台回退",
-     "ui/reminder.py", ["_stop_sound", "_play_wav", "_schedule_auto_stop"]),
-    ("05-提醒-弹出提醒.png", "阶段结束提醒入口：按设置决定弹窗与响铃",
-     "ui/reminder.py", ["show_phase_reminder"]),
-    ("06-迷你悬浮窗.png", "迷你悬浮窗：置顶开关、显隐与位置记忆",
-     "ui/float_window.py",
-     ["FloatWindow._restore_position", "FloatWindow._save_position",
-      "FloatWindow.show", "FloatWindow.hide", "FloatWindow.toggle_topmost"]),
-    ("07-习惯热力图自绘.png", "Canvas 自绘 15 周打卡热力图",
-     "ui/habit_view.py", ["HabitView._draw_heatmap"]),
-    ("08-统计趋势图自绘.png", "Canvas 自绘近 7 天专注趋势柱状图",
-     "ui/stats_view.py", ["StatsView._draw_chart"]),
-    ("09-数据库结构版本与迁移.png", "SQLite 结构版本与迁移通道",
-     "app/storage.py",
-     ["Storage._stored_schema_version", "Storage._apply_migrations"]),
-    ("10-跨平台字体自适应.png", "按平台探测可用中文字体",
-     "ui/theme.py", ["init_fonts"]),
+    ("01-番茄钟-开始专注.png", "番茄钟状态机：开始 / 继续计时",
+     "app/pomodoro.py", ["PomodoroEngine.start"], None),
+    ("02-番茄钟-暂停重置.png", "番茄钟状态机：暂停 / 开始暂停切换 / 重置",
+     "app/pomodoro.py", ["PomodoroEngine.pause", "PomodoroEngine.reset"], None),
+    ("03-番茄钟-手动推进.png", "手动推进 1 秒（无界面场景与第三方程序可用）",
+     "app/pomodoro.py", ["PomodoroEngine.tick"], None),
+    ("04-番茄钟-墙钟刷新.png", "按真实时间刷新剩余时间（幂等，界面卡顿不影响计时）",
+     "app/pomodoro.py", ["PomodoroEngine.refresh"], None),
+    ("05-番茄钟-时钟取整.png", "单调时钟剩余秒数计算与浮点取整容限",
+     "app/pomodoro.py", ["PomodoroEngine._remaining_from_clock"], None),
+    ("06-铃声-波形与包络.png", "标准库合成铃声：包络（防爆音）与正弦波形生成",
+     "app/alarm.py", ["_envelope", "_render_note"], None),
+    ("07-铃声-WAV写出.png", "按阶段旋律写出循环 WAV 文件",
+     "app/alarm.py", ["synthesize_alarm"], None),
+    ("08-提醒-播放铃声.png", "Windows 异步循环播放铃声（跨平台回退）",
+     "ui/reminder.py", ["_play_wav"], None),
+    ("09-提醒-提醒入口.png", "阶段结束提醒入口：按设置决定弹窗 / 响铃",
+     "ui/reminder.py", ["show_phase_reminder"], None),
+    ("10-悬浮窗-位置记忆.png", "悬浮窗位置恢复：多显示器坐标校验与默认位置",
+     "ui/float_window.py", ["FloatWindow._restore_position"], None),
+    ("11-悬浮窗-显隐与置顶.png", "悬浮窗显示、隐藏与 📌 置顶开关",
+     "ui/float_window.py", ["FloatWindow.show", "FloatWindow.hide",
+                            "FloatWindow.toggle_topmost"], None),
+    ("12-习惯热力图-绘制.png", "Canvas 自绘热力图：颜色分级、今日高亮",
+     "ui/habit_view.py", ["HabitView._draw_heatmap 绘制部分"], (269, 292)),
+    ("13-统计趋势图-柱条.png", "Canvas 自绘趋势图：柱条、数值与日期标签",
+     "ui/stats_view.py", ["StatsView._draw_chart 柱条部分"], (229, 250)),
+    ("14-数据库-结构迁移.png", "SQLite 结构版本迁移通道",
+     "app/storage.py", ["Storage._apply_migrations"], None),
+    ("15-跨平台字体.png", "按平台探测可用中文字体并回退",
+     "ui/theme.py", ["init_fonts"], None),
 ]
 
 TOKEN_RE = re.compile(
@@ -164,20 +170,23 @@ def highlight(line):
 
 
 def render(spec, manifest):
-    filename, desc, rel_path, symbols = spec
+    filename, desc, rel_path, symbols, explicit_range = spec
     abs_path = os.path.join(ROOT, rel_path)
     with open(abs_path, encoding="utf-8") as fh:
-        all_lines = fh.read().split("\n")
+        source = fh.read()
+    all_lines = source.split("\n")
+    tree = ast.parse(source)
 
-    with open(abs_path, encoding="utf-8") as fh:
-        tree = ast.parse(fh.read())
+    if explicit_range:
+        start, end = explicit_range
+    else:
+        spans = [find_span(tree, s) for s in symbols]
+        start = min(s[0] for s in spans)
+        end = max(s[1] for s in spans)
 
-    spans = [find_span(tree, s) for s in symbols]
-    start = min(s[0] for s in spans)
-    end = max(s[1] for s in spans)
-    # 向上包含紧邻的装饰器/函数定义行标题（不额外扩展，保持精确区间）
     lines = all_lines[start - 1:end]
     eff = effective_lines(lines)
+    symbol_label = " / ".join(symbols)
 
     font = load_font(FONT_CODE_CANDIDATES, CODE_SIZE)
     font_bold = load_font(FONT_CODE_CANDIDATES, CODE_SIZE)
