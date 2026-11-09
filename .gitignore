@@ -20,3 +20,6 @@ Thumbs.db
 # 不会出现在仓库内；此处兜底防止误放）
 *.db
 *.sqlite3
+build/
+dist/
+*.exe
