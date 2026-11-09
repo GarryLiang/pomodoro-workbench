@@ -18,7 +18,7 @@ APP_TITLE = "番茄工作台"
 APP_VERSION = "v1.3.1"
 
 NAV_ITEMS = [
-    ("pomodoro", "🍅  番茄专注"),
+    ("pomodoro", "🍅  番茄专注-YPL"),
     ("todo", "☑  待办清单"),
     ("habit", "🔥  习惯打卡"),
     ("stats", "📊  数据统计"),
