@@ -254,6 +254,9 @@ def test_export():
             with open(out_csv, "rb") as fh:
                 head = fh.read(3)
             check("文件带 UTF-8 BOM", head == b"\xef\xbb\xbf")
+            check("返回值为实际写入字节数",
+                  export_mod.save_text_file(out_csv, todo_csv)
+                  == os.path.getsize(out_csv))
 
             # 数据库备份
             bak = os.path.join(tmp, "backup.db")
