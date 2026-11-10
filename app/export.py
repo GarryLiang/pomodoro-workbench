@@ -99,7 +99,9 @@ def export_all_sessions_csv(storage):
 def save_text_file(path, text):
     """以 UTF-8-BOM 写出文本文件，返回写入字节数。Excel 打开不乱码。"""
     with open(path, "w", encoding="utf-8-sig", newline="") as fh:
-        return fh.write(text)
+        fh.write(text)
+    # 文本模式 write() 返回的是字符数而非字节数；此处按 UTF-8 编码长度 + BOM 折算
+    return len(text.encode("utf-8")) + 3
 
 
 def backup_database(storage, dest_path):
